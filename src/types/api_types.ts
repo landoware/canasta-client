@@ -17,8 +17,8 @@
  * tygo:generate
  */
 export interface ErrorMessage {
-  message: string;
-  code?: string;
+  message: string
+  code?: string
 }
 /**
  * ============================================================================
@@ -27,16 +27,16 @@ export interface ErrorMessage {
  * tygo:generate
  */
 export interface CreateGameRequest {
-  username: string;
-  randomTeamOrder: boolean;
+  username: string
+  randomTeamOrder: boolean
 }
 /**
  * tygo:generate
  */
 export interface CreateGameResponse {
-  roomCode: string;
-  token: string;
-  playerId: number /* int */;
+  roomCode: string
+  token: string
+  playerId: number /* int */
 }
 /**
  * ============================================================================
@@ -45,17 +45,17 @@ export interface CreateGameResponse {
  * tygo:generate
  */
 export interface JoinGameRequest {
-  roomCode: string;
-  username: string;
+  roomCode: string
+  username: string
 }
 /**
  * tygo:generate
  */
 export interface JoinGameResponse {
-  success: boolean;
-  token: string;
-  playerId: number /* int */;
-  message?: string;
+  success: boolean
+  token: string
+  playerId: number /* int */
+  message?: string
 }
 /**
  * ============================================================================
@@ -64,42 +64,42 @@ export interface JoinGameResponse {
  * tygo:generate
  */
 export interface ReconnectRequest {
-  token: string;
+  token: string
 }
 /**
  * tygo:generate
  */
 export interface ReconnectResponse {
-  success: boolean;
-  message?: string;
-  roomCode?: string;
-  playerId?: number /* int */;
+  success: boolean
+  message?: string
+  roomCode?: string
+  playerId?: number /* int */
 }
 /**
  * tygo:generate
  */
 export interface PlayerStatusNotification {
-  playerId: number /* int */;
-  username: string;
-  connected: boolean;
+  playerId: number /* int */
+  username: string
+  connected: boolean
 }
 /**
  * tygo:generate
  */
 export interface GameResumedNotification {
-  message: string;
+  message: string
 }
 /**
  * tygo:generate
  */
 export interface GamePausedNotification {
-  message: string;
+  message: string
 }
 /**
  * tygo:generate
  */
 export interface DisconnectedElsewhereNotification {
-  message: string;
+  message: string
 }
 /**
  * ============================================================================
@@ -108,7 +108,7 @@ export interface DisconnectedElsewhereNotification {
  * tygo:generate
  */
 export interface SetReadyRequest {
-  ready: boolean;
+  ready: boolean
 }
 /**
  * ============================================================================
@@ -117,7 +117,7 @@ export interface SetReadyRequest {
  * tygo:generate
  */
 export interface UpdateTeamOrderRequest {
-  playerOrder: string[];
+  playerOrder: string[]
 }
 /**
  * ============================================================================
@@ -125,8 +125,7 @@ export interface UpdateTeamOrderRequest {
  * ============================================================================
  * tygo:generate
  */
-export interface LeaveGameRequest {
-}
+export interface LeaveGameRequest {}
 /**
  * ============================================================================
  * LOBBY STATE (lobby_update broadcast)
@@ -134,21 +133,21 @@ export interface LeaveGameRequest {
  * tygo:generate
  */
 export interface LobbyState {
-  roomCode: string;
-  players: LobbyPlayer[];
-  playerCount: number /* int */;
-  randomTeamOrder: boolean;
-  status: string;
-  allReady: boolean;
+  roomCode: string
+  players: LobbyPlayer[]
+  playerCount: number /* int */
+  randomTeamOrder: boolean
+  status: string
+  allReady: boolean
 }
 /**
  * tygo:generate
  */
 export interface LobbyPlayer {
-  username: string;
-  ready: boolean;
-  connected: boolean;
-  isYou: boolean; // Personalized for each client
+  username: string
+  ready: boolean
+  connected: boolean
+  isYou: boolean // Personalized for each client
 }
 /**
  * ============================================================================
@@ -157,7 +156,7 @@ export interface LobbyPlayer {
  * tygo:generate
  */
 export interface GameStartedNotification {
-  message: string;
+  message: string
 }
 /**
  * ============================================================================
@@ -166,10 +165,10 @@ export interface GameStartedNotification {
  * tygo:generate
  */
 export interface GameStateMessage {
-  state: any; // *canasta.ClientState - using interface{} to avoid circular import
-  currentPlayer: number /* int */;
-  phase: string;
-  status: string;
+  state: any // *canasta.ClientState - using interface{} to avoid circular import
+  currentPlayer: number /* int */
+  phase: string
+  status: string
 }
 /**
  * ============================================================================
@@ -178,17 +177,17 @@ export interface GameStateMessage {
  * tygo:generate
  */
 export interface MoveRequest {
-  type: string; // Move type from canasta package (e.g., "draw_from_deck")
-  ids?: number /* int */[]; // Card IDs for moves that require multiple cards
-  id?: number /* int */; // Single card ID for moves that require one card
-  fromFoot?: boolean; // For play_red_three: true if from foot (no draw), false if from hand (draw replacement)
+  type: string // Move type from canasta package (e.g., "draw_from_deck")
+  ids?: number /* int */[] // Card IDs for moves that require multiple cards
+  id?: number /* int */ // Single card ID for moves that require one card
+  fromFoot?: boolean // For play_red_three: true if from foot (no draw), false if from hand (draw replacement)
 }
 /**
  * tygo:generate
  */
 export interface MoveResultResponse {
-  success: boolean;
-  message?: string;
+  success: boolean
+  message?: string
 }
 /**
  * ============================================================================
@@ -197,93 +196,91 @@ export interface MoveResultResponse {
  * tygo:generate
  */
 export interface HandEndedNotification {
-  handNumber: number /* int */; // Hand that just ended
-  teamAScore: number /* int */; // Team A's total score
-  teamBScore: number /* int */; // Team B's total score
-  nextHandReady: boolean; // true if starting new hand, false if game ended
+  handNumber: number /* int */ // Hand that just ended
+  teamAScore: number /* int */ // Team A's total score
+  teamBScore: number /* int */ // Team B's total score
+  nextHandReady: boolean // true if starting new hand, false if game ended
 }
 /**
  * tygo:generate
  */
 export interface GameEndedNotification {
-  teamAScore: number /* int */;
-  teamBScore: number /* int */;
-  winnerTeam: string; // "TeamA" or "TeamB"
+  teamAScore: number /* int */
+  teamBScore: number /* int */
+  winnerTeam: string // "TeamA" or "TeamB"
 }
 /**
  * tygo:generate
  */
 export interface ServerShutdownNotification {
-  message: string;
+  message: string
 }
 /**
  * tygo:generate
  */
 export interface PermissionRequestNotification {
-  requestingPlayer: number /* int */;
-  requestingName: string;
+  requestingPlayer: number /* int */
+  requestingName: string
 }
 /**
  * tygo:generate
  */
 export interface PermissionResponseNotification {
-  approved: boolean;
+  approved: boolean
 }
 
 //////////
 // source: connections.go
 
 export interface PlayerConnection {
-  GameID: string;
-  PlayerID: number /* int */;
-  Username: string;
-  Token: string;
+  GameID: string
+  PlayerID: number /* int */
+  Username: string
+  Token: string
 }
-export interface ConnectionManager {
-}
+export interface ConnectionManager {}
 
 //////////
 // source: game_manager.go
 
-export interface GameManager {
-}
+export interface GameManager {}
 export interface ActiveGame {
-  Game?: any /* canasta.Game */;
-  RoomCode: string;
-  Config: LobbyConfig;
-  Status: GameStatus;
-  Players: PlayerSlot[];
-  CreatedAt: string;
-  UpdatedAt: string;
-  LobbyExpiry: string;
+  Game?: any /* canasta.Game */
+  RoomCode: string
+  Config: LobbyConfig
+  Status: GameStatus
+  Players: PlayerSlot[]
+  CreatedAt: string
+  UpdatedAt: string
+  LobbyExpiry: string
 }
 export interface LobbyConfig {
-  PlayerOrder: string[];
-  RandomTeamOrder: boolean;
+  PlayerOrder: string[]
+  RandomTeamOrder: boolean
 }
 export interface PlayerSlot {
-  Username: string;
-  Token: string;
-  Connected: boolean;
-  Ready: boolean;
-  JoinedAt: string;
+  Username: string
+  Token: string
+  Connected: boolean
+  Ready: boolean
+  JoinedAt: string
 }
-export type GameStatus = string;
-export const StatusLobby: GameStatus = "lobby";
-export const StatusPlaying: GameStatus = "playing";
-export const StatusPaused: GameStatus = "paused";
-export const StatusCompleted: GameStatus = "completed";
+export type GameStatus = string
+export const StatusLobby: GameStatus = 'lobby'
+export const StatusPlaying: GameStatus = 'playing'
+export const StatusPaused: GameStatus = 'paused'
+export const StatusCompleted: GameStatus = 'completed'
 
 //////////
 // source: messages.go
 
 export interface ClientMessage {
-  type: string;
-  payload: any /* json.RawMessage */;
+  type: string
+  payload: any /* json.RawMessage */
 }
 export interface ServerMessage {
-  type: string;
-  payload: any;
+  type: string
+  payload: any
 }
 
 //////////
@@ -294,15 +291,13 @@ export interface ServerMessage {
  * Why sliding window: Prevents burst attacks while allowing consistent legitimate traffic
  * Why per-connection: One abusive client shouldn't affect others
  */
-export interface RateLimiter {
-}
+export interface RateLimiter {}
 /**
  * ConnectionHealth tracks last activity time for each connection
  * Used for detecting dead/inactive connections
  * Why separate from RateLimiter: Different concerns - health vs abuse prevention
  */
-export interface ConnectionHealth {
-}
+export interface ConnectionHealth {}
 
 //////////
 // source: persistence.go
@@ -310,23 +305,20 @@ export interface ConnectionHealth {
 /**
  * PersistenceManager handles saving and loading game state to/from database
  */
-export interface PersistenceManager {
-}
+export interface PersistenceManager {}
 
 //////////
 // source: server.go
 
-export interface Server {
-}
+export interface Server {}
 
 //////////
 // source: session_manager.go
 
 export interface SessionInfo {
-  Token: string;
-  RoomCode: string;
-  PlayerID: number /* int */;
-  Username: string;
+  Token: string
+  RoomCode: string
+  PlayerID: number /* int */
+  Username: string
 }
-export interface SessionManager {
-}
+export interface SessionManager {}
