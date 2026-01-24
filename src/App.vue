@@ -13,10 +13,6 @@ onMounted(() => {
 </script>
 
 <template>
-
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  </head>
   <div id="app" class="h-dvh bg-card-table text-white">
     <RouterView />
 
