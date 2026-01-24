@@ -13,8 +13,12 @@ onMounted(() => {
 </script>
 
 <template>
-  <div id="app" class="bg-card-green">
-    <router-view />
+
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  </head>
+  <div id="app" class="min-h-screen bg-card-table text-white">
+    <RouterView />
 
     <!-- Global error/notification toasts -->
     <div class="toasts">
