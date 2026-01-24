@@ -3,7 +3,7 @@ import Button from '@/components/Button.vue'
 import FormCard from '@/components/FormCard.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
@@ -17,15 +17,28 @@ var joiningGame = ref(false)
 var roomCode = ref('')
 var playerName = ref('')
 
+onMounted(() => {
+  wsStore.connect()
+
+  if (gameStore.token && gameStore.roomCode) {
+    router.push(`/join/${gameStore.roomCode}`)
+  }
+})
+
 function createGame() {
   if (!playerName.value) {
     gameStore.addError('Please enter a username')
     return
   }
 
-  console.log('new game go brr')
-  // gameStore.createGame(playerName.value)
+  console.log('Good luck fam')
+  gameStore.createGame(playerName.value)
 
+  setTimeout(() => {
+    if (gameStore.roomCode) {
+      router.push(`/join/${gameStore.roomCode}`)
+    }
+  }, 100)
 }
 
 function joinLobby() {
@@ -44,7 +57,14 @@ function joinLobby() {
     return
   }
 
-  console.log('join game go brr')
+  console.log("Don't let Amy pick up the pile")
+  gameStore.joinGame(roomCode.value.toUpperCase(), playerName.value)
+
+  setTimeout(() => {
+    if (gameStore.token) {
+      router.push(`/join/${gameStore.roomCode}`)
+    }
+  }, 100)
 }
 
 function cancel() {
@@ -60,15 +80,8 @@ function cancel() {
     <p class="text-card-white font-quill text-[clamp(2.5rem,14vw,6rem)] leading-none text-shadow-lg mb-10">
       Canasta
     </p>
-    <FormCard imageUrl="../assets/cards/blue.png">
+    <FormCard>
       <div v-if="initialState" class="flex flex-col gap-5">
-        <input v-model.trim="roomCode" type="text" :maxlength="4"
-          class="font-rs-bold text-black uppercase bg-white border border-card-blue rounded-md text-center"
-          placeholder="CODE">
-
-        <input v-if="!initialState" v-model.trim="playerName" type="text"
-          class="font-rs-bold text-black bg-white border border-card-blue rounded-md text-center" placeholder="Name">
-
         <Button @click="creatingGame = true; initialState = false" label="New Game" />
         <Button @click="joiningGame = true; initialState = false" label="Join Game" />
       </div>
