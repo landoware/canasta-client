@@ -17,11 +17,11 @@ onMounted(() => {
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
-  <div id="app" class="min-h-screen bg-card-table text-white">
+  <div id="app" class="h-dvh bg-card-table text-white">
     <RouterView />
 
     <!-- Global error/notification toasts -->
-    <div class="toasts">
+    <div class="toasts font-rs-bold">
       <div v-for="error in gameStore.errors" :key="error" class="toast error">
         {{ error }}
       </div>
