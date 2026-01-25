@@ -1,0 +1,9 @@
+services:
+  canasta-client:
+    image: canasta-client
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
