@@ -7,8 +7,7 @@ name: Docker
 
 on:
   push:
-    # Publish semver tags as releases.
-    tags: ["v*.*.*"]
+    branches: ["develop"]
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -74,6 +73,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: VITE_WS_URL=${{ vars.VITE_WS_URL }}
 
       # Sign the resulting Docker image digest except on PRs.
       # This will only write to the public Rekor transparency log when the Docker
