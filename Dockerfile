@@ -5,8 +5,9 @@ WORKDIR /app
 ARG VITE_WS_URL
 ENV VITE_WS_URL=$VITE_WS_URL
 
-COPY package.json package-lock.json ./
-RUN bun install
+COPY package.json package.json ./
+COPY bun.lock bun.lock
+RUN bun install --frozen-lockfile
 
 COPY . .
 RUN bun run build

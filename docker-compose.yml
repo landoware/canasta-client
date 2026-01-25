@@ -4,6 +4,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_WS_URL: $VITE_WS_URL
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "4000:8080"
