@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import Button from '@/components/Button.vue';
-import FormCard from '@/components/FormCard.vue';
-import LobbyPlayerCard from '@/components/LobbyPlayerCard.vue';
 import { useGameStore } from '@/stores/game';
 import { useRouter } from 'vue-router';
+import LobbyPlayerCard from '@/components/LobbyPlayerCard.vue';
+import Button from '@/components/Button.vue';
+import FormCard from '@/components/FormCard.vue';
 
 const router = useRouter()
 const gameStore = useGameStore()
+
+function ready() {
+  gameStore.setReady(!gameStore.mySlot?.ready.valueOf())
+}
 
 function leave() {
   gameStore.leaveGame()
@@ -23,15 +27,12 @@ function leave() {
     <div class="flex flex-row justify-center items-center gap-10">
       <div>
         <FormCard color="red" class="md:min-w-55">
-          <div v-for="player, index in gameStore.lobbyState?.players" :key="index">
-            <LobbyPlayerCard :playerName="player.username" />
-          </div>
         </FormCard>
       </div>
 
       <div>
         <div v-for="(player, index) in gameStore.lobbyState?.players" :key="index">
-          <LobbyPlayerCard :playerName="player.username" />
+          <LobbyPlayerCard :playerName="player.username" :ready="player.ready" />
         </div>
       </div>
 
@@ -40,6 +41,7 @@ function leave() {
         </FormCard>
       </div>
     </div>
+    <Button @click="ready()" label="Ready" />
     <Button @click="leave()" label="Leave" class="" />
   </div>
 

@@ -10,12 +10,12 @@ const router = useRouter()
 const wsStore = useWebSocketStore()
 const gameStore = useGameStore()
 
-var initialState = ref(true)
-var creatingGame = ref(false)
-var joiningGame = ref(false)
+const initialState = ref(true)
+const creatingGame = ref(false)
+const joiningGame = ref(false)
 
-var roomCode = ref('')
-var playerName = ref('')
+const roomCode = ref('')
+const playerName = ref('')
 
 onMounted(() => {
   wsStore.connect()
