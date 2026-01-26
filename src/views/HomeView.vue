@@ -31,12 +31,12 @@ function createGame() {
     return
   }
 
-  console.log('Good luck fam')
   gameStore.createGame(playerName.value)
 
   setTimeout(() => {
-    if (gameStore.roomCode) {
+    if (gameStore.roomCode && gameStore.lobbyState.status === "lobby") {
       router.push(`/join/${gameStore.roomCode}`)
+      console.log('Good luck fam')
     }
   }, 100)
 }
