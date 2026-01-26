@@ -3,7 +3,6 @@ import { useGameStore } from '@/stores/game';
 import { useRouter } from 'vue-router';
 import LobbyPlayerCard from '@/components/LobbyPlayerCard.vue';
 import Button from '@/components/Button.vue';
-import FormCard from '@/components/FormCard.vue';
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -20,29 +19,31 @@ function leave() {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col items-center justify-center text-center">
+  <div class="max-h-screen flex flex-col items-center justify-center text-center">
     <div class=" text-center text-card-white font-quill text-[clamp(2.5rem,14vw,6rem)] text-shadow-lg">
       Pick your Partners
     </div>
-    <div class="flex flex-row justify-center items-center gap-10">
+    <div class="grid grid-cols-2 justify-center items-center gap-10">
       <div>
-        <FormCard color="red" class="md:min-w-55">
-        </FormCard>
+        <LobbyPlayerCard :playerName="gameStore.lobbyState?.players[0]?.username"
+          :ready="gameStore.lobbyState?.players[0]?.ready" :team="true" />
       </div>
-
       <div>
-        <div v-for="(player, index) in gameStore.lobbyState?.players" :key="index">
-          <LobbyPlayerCard :playerName="player.username" :ready="player.ready" />
-        </div>
+        <LobbyPlayerCard :playerName="gameStore.lobbyState?.players[1]?.username"
+          :ready="gameStore.lobbyState?.players[1]?.ready" />
       </div>
-
       <div>
-        <FormCard class="md:min-w-55">
-        </FormCard>
+        <LobbyPlayerCard :playerName="gameStore.lobbyState?.players[2]?.username"
+          :ready="gameStore.lobbyState?.players[2]?.ready" :team="true" />
+      </div>
+      <div>
+        <LobbyPlayerCard :playerName="gameStore.lobbyState?.players[3]?.username"
+          :ready="gameStore.lobbyState?.players[3]?.ready" :team="false" />
       </div>
     </div>
-    <Button @click="ready()" label="Ready" />
-    <Button @click="leave()" label="Leave" class="" />
+    <Button @click="ready()" label="Ready" class="m-5" />
+    <Button @click="leave()" label="Leave" />
+
   </div>
 
 </template>
