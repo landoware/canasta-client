@@ -1,47 +1,81 @@
-<script setup>
-import Button from '@/components/Button.vue'
-import FormCard from '@/components/FormCard.vue'
+<script setup lang="ts">
+import { onMounted, ref, watch } from 'vue'
+import type { Ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
-import { onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import Button from '@/components/Button.vue'
+import FormCard from '@/components/FormCard.vue'
 
 const router = useRouter()
 const wsStore = useWebSocketStore()
 const gameStore = useGameStore()
 
-const initialState = ref(true)
-const creatingGame = ref(false)
-const joiningGame = ref(false)
+const initialState: Ref<boolean> = ref(true)
+const creatingGame: Ref<boolean> = ref(false)
+const joiningGame: Ref<boolean> = ref(false)
+const pendingCreate: Ref<boolean> = ref(false)
+const pendingJoin: Ref<boolean> = ref(false)
+const pendingJoinRoomCode: Ref<string | null> = ref(null)
+const createTokenSnapshot: Ref<string | null> = ref(null)
+const createRoomSnapshot: Ref<string | null> = ref(null)
+const joinTokenSnapshot: Ref<string | null> = ref(null)
 
-const roomCode = ref('')
-const playerName = ref('')
+const roomCode: Ref<string> = ref('')
+const playerName: Ref<string> = ref('')
 
 onMounted(() => {
   wsStore.connect()
 
   if (gameStore.token && gameStore.roomCode) {
-    router.push(`/join/${gameStore.roomCode}`)
+    void router.push(`/join/${gameStore.roomCode}`)
   }
 })
 
-function createGame() {
+watch(
+  () => [pendingCreate.value, gameStore.token, gameStore.roomCode] as const,
+  ([pending, token, roomCodeValue]) => {
+    if (!pending || !token || !roomCodeValue) return
+
+    const tokenChanged = token !== createTokenSnapshot.value
+    const roomCodeChanged = roomCodeValue !== createRoomSnapshot.value
+
+    if (!tokenChanged && !roomCodeChanged) return
+
+    pendingCreate.value = false
+    createTokenSnapshot.value = null
+    createRoomSnapshot.value = null
+    void router.push(`/join/${roomCodeValue}`)
+  },
+)
+
+watch(
+  () => [pendingJoin.value, gameStore.token] as const,
+  ([pending, token]) => {
+    if (!pending || !token || !pendingJoinRoomCode.value) return
+    if (token === joinTokenSnapshot.value) return
+
+    const targetRoomCode = pendingJoinRoomCode.value
+    pendingJoin.value = false
+    pendingJoinRoomCode.value = null
+    joinTokenSnapshot.value = null
+    void router.push(`/join/${targetRoomCode}`)
+  },
+)
+
+function createGame(): void {
   if (!playerName.value) {
     gameStore.addError('Please enter a username')
     return
   }
 
+  createTokenSnapshot.value = gameStore.token
+  createRoomSnapshot.value = gameStore.roomCode
+  pendingCreate.value = true
   gameStore.createGame(playerName.value)
-
-  setTimeout(() => {
-    if (gameStore.roomCode && gameStore.lobbyState.status === "lobby") {
-      router.push(`/join/${gameStore.roomCode}`)
-      console.log('Good luck fam')
-    }
-  }, 100)
 }
 
-function joinLobby() {
+function joinLobby(): void {
   if (!roomCode.value && !playerName.value) {
     gameStore.addError('Please enter a room code and your name')
     return
@@ -57,20 +91,24 @@ function joinLobby() {
     return
   }
 
-  console.log("Don't let Amy pick up the pile")
-  gameStore.joinGame(roomCode.value.toUpperCase(), playerName.value)
-
-  setTimeout(() => {
-    if (gameStore.token) {
-      router.push(`/join/${gameStore.roomCode}`)
-    }
-  }, 100)
+  console.log('Don\'t let Amy pick up the pile')
+  const normalizedRoomCode = roomCode.value.toUpperCase()
+  pendingJoinRoomCode.value = normalizedRoomCode
+  joinTokenSnapshot.value = gameStore.token
+  pendingJoin.value = true
+  gameStore.joinGame(normalizedRoomCode, playerName.value)
 }
 
-function cancel() {
+function cancel(): void {
   initialState.value = true
   creatingGame.value = false
   joiningGame.value = false
+  pendingCreate.value = false
+  pendingJoin.value = false
+  pendingJoinRoomCode.value = null
+  createTokenSnapshot.value = null
+  createRoomSnapshot.value = null
+  joinTokenSnapshot.value = null
 }
 
 </script>
@@ -111,11 +149,6 @@ function cancel() {
       </form>
     </FormCard>
   </div>
-  <!-- <div class="notifications font-rs-bold"> -->
-  <!--   <div v-for="error in gameStore.errors" :key="error" class="error"> -->
-  <!--     {{ error }} -->
-  <!--   </div> -->
-  <!-- </div> -->
 
   <div v-if="!wsStore.connected" class="connecting">
     <p class="font-rs">Connecting to server...</p>
