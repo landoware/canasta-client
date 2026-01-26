@@ -20,7 +20,11 @@ function leave() {
 
 <template>
   <div class="max-h-screen flex flex-col items-center justify-center text-center">
-    <div class=" text-center text-card-white font-quill text-[clamp(2.5rem,14vw,6rem)] text-shadow-lg">
+    <div class="text-card-white text-[clamp(2.5rem,14vw,6rem)] text-shadow-lg">
+      <span class="font-quill">Room </span>
+      <span class="font-rs-bold text-rs-yellow">{{ gameStore.roomCode }}</span>
+    </div>
+    <div class="text-card-white font-quill text-[clamp(2.5rem,14vw,6rem)] text-shadow-lg">
       Pick your Partners
     </div>
     <div class="grid grid-cols-2 justify-center items-center gap-10">
