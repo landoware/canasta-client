@@ -1,86 +1,48 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref } from 'vue'
 import type { Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/game'
-import { useWebSocketStore } from '@/stores/websocket'
 import Button from '@/components/Button.vue'
 import FormCard from '@/components/FormCard.vue'
 
 const router = useRouter()
-const wsStore = useWebSocketStore()
 const gameStore = useGameStore()
 
 const initialState: Ref<boolean> = ref(true)
 const creatingGame: Ref<boolean> = ref(false)
 const joiningGame: Ref<boolean> = ref(false)
-const pendingCreate: Ref<boolean> = ref(false)
-const pendingJoin: Ref<boolean> = ref(false)
-const pendingJoinRoomCode: Ref<string | null> = ref(null)
-const createTokenSnapshot: Ref<string | null> = ref(null)
-const createRoomSnapshot: Ref<string | null> = ref(null)
-const joinTokenSnapshot: Ref<string | null> = ref(null)
+const submitting: Ref<boolean> = ref(false)
 
 const roomCode: Ref<string> = ref('')
 const playerName: Ref<string> = ref('')
 
 onMounted(() => {
-  wsStore.connect()
-
-  if (gameStore.token && gameStore.roomCode) {
-    void router.push(`/join/${gameStore.roomCode}`)
+  // Pre-fill the name field from a previous visit — a pure convenience,
+  // there's no credential to restore (see internal/room.Room.Join).
+  if (gameStore.playerName) {
+    playerName.value = gameStore.playerName
   }
 })
 
-watch(
-  () => [pendingCreate.value, gameStore.token, gameStore.roomCode] as const,
-  ([pending, token, roomCodeValue]) => {
-    if (!pending || !token || !roomCodeValue) return
-
-    const tokenChanged = token !== createTokenSnapshot.value
-    const roomCodeChanged = roomCodeValue !== createRoomSnapshot.value
-
-    if (!tokenChanged && !roomCodeChanged) return
-
-    pendingCreate.value = false
-    createTokenSnapshot.value = null
-    createRoomSnapshot.value = null
-    void router.push(`/join/${roomCodeValue}`)
-  },
-)
-
-watch(
-  () => [pendingJoin.value, gameStore.token] as const,
-  ([pending, token]) => {
-    if (!pending || !token || !pendingJoinRoomCode.value) return
-    if (token === joinTokenSnapshot.value) return
-
-    const targetRoomCode = pendingJoinRoomCode.value
-    pendingJoin.value = false
-    pendingJoinRoomCode.value = null
-    joinTokenSnapshot.value = null
-    void router.push(`/join/${targetRoomCode}`)
-  },
-)
-
-function createGame(): void {
+async function createGame(): Promise<void> {
   if (!playerName.value) {
     gameStore.addError('Please enter a username')
     return
   }
 
-  createTokenSnapshot.value = gameStore.token
-  createRoomSnapshot.value = gameStore.roomCode
-  pendingCreate.value = true
-  gameStore.createGame(playerName.value)
+  submitting.value = true
+  try {
+    const code = await gameStore.createRoom(playerName.value)
+    void router.push(`/join/${code}`)
+  } catch {
+    gameStore.addError('Could not create a room right now. Please try again.')
+  } finally {
+    submitting.value = false
+  }
 }
 
-function joinLobby(): void {
-  if (!roomCode.value && !playerName.value) {
-    gameStore.addError('Please enter a room code and your name')
-    return
-  }
-
+async function joinLobby(): Promise<void> {
   if (!playerName.value) {
     gameStore.addError('Please enter your name')
     return
@@ -91,26 +53,23 @@ function joinLobby(): void {
     return
   }
 
-  console.log('Don\'t let Amy pick up the pile')
   const normalizedRoomCode = roomCode.value.toUpperCase()
-  pendingJoinRoomCode.value = normalizedRoomCode
-  joinTokenSnapshot.value = gameStore.token
-  pendingJoin.value = true
-  gameStore.joinGame(normalizedRoomCode, playerName.value)
+  submitting.value = true
+  try {
+    await gameStore.joinRoom(normalizedRoomCode, playerName.value)
+    void router.push(`/join/${normalizedRoomCode}`)
+  } catch (err) {
+    gameStore.addError(err instanceof Error ? err.message : 'Could not join that room.')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function cancel(): void {
   initialState.value = true
   creatingGame.value = false
   joiningGame.value = false
-  pendingCreate.value = false
-  pendingJoin.value = false
-  pendingJoinRoomCode.value = null
-  createTokenSnapshot.value = null
-  createRoomSnapshot.value = null
-  joinTokenSnapshot.value = null
 }
-
 </script>
 
 <template>
@@ -136,7 +95,7 @@ function cancel(): void {
 
       <form v-if="joiningGame" @submit.prevent="joinLobby()">
         <div class="flex flex-col gap-5">
-          <input v-model.trim="roomCode" type="text" :maxlength="4"
+          <input v-model.trim="roomCode" type="text" :maxlength="6"
             class="font-rs-bold text-black uppercase bg-white border border-card-blue rounded-md text-center"
             placeholder="CODE">
 
@@ -150,8 +109,7 @@ function cancel(): void {
     </FormCard>
   </div>
 
-  <div v-if="!wsStore.connected" class="connecting">
-    <p class="font-rs">Connecting to server...</p>
+  <div v-if="submitting" class="connecting">
+    <p class="font-rs">Connecting...</p>
   </div>
-
 </template>

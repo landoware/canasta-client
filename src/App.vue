@@ -1,15 +1,10 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useWebSocketStore } from '@/stores/websocket'
 import { useGameStore } from '@/stores/game'
 
-const wsStore = useWebSocketStore()
+// There's no app-wide connection to open here: a websocket now always
+// targets one specific room (/rooms/{code}/ws?name=...), so connecting
+// happens when the player actually creates or joins one (see HomeView).
 const gameStore = useGameStore()
-
-onMounted(() => {
-  // Connect to WebSocket when app loads
-  wsStore.connect()
-})
 </script>
 
 <template>
