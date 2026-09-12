@@ -1,5 +1,5 @@
-import type { Card } from '@/types/game'
-import { Hearts, Diamonds, Clubs, Spades, Two, Joker, Three } from '@/types/game'
+import type { Card } from '@/types/canasta'
+import { Hearts, Diamonds, Clubs, Spades, Two, Joker, Three } from '@/types/canasta'
 
 export const isWildCard = (card: Card): boolean => {
   return card.rank === Two || card.rank === Joker

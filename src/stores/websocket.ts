@@ -1,28 +1,45 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Ref } from 'vue'
+import type { ClientMessage, ServerMessage } from '@/types/protocol'
+import {
+  TypeWelcome,
+  TypeState,
+  TypePlayersLobby,
+  TypePlayerDisconnected,
+  TypePlayerReconnected,
+  TypePlayerStatus,
+  TypeError,
+} from '@/types/protocol'
 import type {
-  CreateGameResponse,
-  JoinGameResponse,
-  ReconnectResponse,
-  LobbyState,
-  GameStartedNotification,
-  GameStateMessage,
-  MoveResultResponse,
-  HandEndedNotification,
-  GameEndedNotification,
-  PermissionRequestNotification,
-  PermissionResponseNotification,
-  PlayerStatusNotification,
-  GamePausedNotification,
-  GameResumedNotification,
-  ErrorMessage,
-} from '@/types/api_types'
+  WelcomePayload,
+  StateMessage,
+  PlayersLobbyPayload,
+  PlayerStatusPayload,
+  ErrorPayload,
+  CreateRoomResponse,
+} from '@/types/protocol'
+import type { MessageType } from '@/types/protocol'
 import { useGameStore } from './game'
 import { useRateLimiter } from '@/composables/useRateLimiter'
 
 const MAX_RECONNECT_ATTEMPTS = 3
 const RECONNECT_DELAYS = [3000, 6000, 12000] // Exponential backoff: 3s, 6s, 12s
+
+// httpBase returns the server's HTTP(S) origin, e.g.
+// "https://landanfagan.com/canasta". Falls back to the Go server's local
+// dev default (see internal/server/server.go's NewHTTPServer) so `bun dev`
+// works against `go run ./cmd/api` with no env setup; staging/production
+// set VITE_SERVER_URL at build time (see the docker-publish workflows).
+const httpBase = (): string =>
+  (import.meta.env.VITE_SERVER_URL || 'http://localhost:8080').replace(/\/$/, '')
+
+// wsUrlFor derives the room's websocket URL from the same origin used for
+// HTTP, swapping the scheme (http->ws, https->wss).
+const wsUrlFor = (roomCode: string, name: string): string => {
+  const wsBase = httpBase().replace(/^http/, 'ws')
+  return `${wsBase}/rooms/${encodeURIComponent(roomCode)}/ws?name=${encodeURIComponent(name)}`
+}
 
 export const useWebSocketStore = defineStore('websocket', () => {
   // ============================================================================
@@ -40,34 +57,46 @@ export const useWebSocketStore = defineStore('websocket', () => {
   // ACTIONS
   // ============================================================================
 
-  const connect = (url?: string): void => {
+  // createRoom asks the server to create a new room and returns its code.
+  // This is the one piece of server communication that isn't a websocket
+  // message — see internal/server/rooms_handler.go.
+  const createRoom = async (): Promise<string> => {
+    const response = await fetch(`${httpBase()}/rooms`, { method: 'POST' })
+    if (!response.ok) {
+      throw new Error(`Failed to create a room (HTTP ${response.status})`)
+    }
+    const body = (await response.json()) as CreateRoomResponse
+    return body.roomCode
+  }
+
+  // connect opens the websocket for roomCode, identifying as name. The
+  // server resolves name to a seat (existing seat if it matches, otherwise
+  // the next open one) before ever upgrading the connection, so a rejected
+  // join (blank name, full room, unknown room code) never reaches onopen —
+  // see the didOpen check in onclose below.
+  const connect = (roomCode: string, name: string): void => {
     if (ws.value?.readyState === WebSocket.OPEN) {
       console.log('WebSocket already connected')
       return
     }
 
-    const wsUrl = url || import.meta.env.VITE_WS_URL || 'wss://canasta-server.fly.dev/websocket'
+    const url = wsUrlFor(roomCode, name)
+    console.log(`Connecting to WebSocket: ${url}`)
+    ws.value = new WebSocket(url)
 
-    console.log(`Connecting to WebSocket: ${wsUrl}`)
-    ws.value = new WebSocket(wsUrl)
+    let didOpen = false
 
     ws.value.onopen = () => {
+      didOpen = true
       console.log('WebSocket connected')
       connected.value = true
       reconnecting.value = false
       reconnectAttempts.value = 0
-
-      // Auto-reconnect with stored token if available
-      const gameStore = useGameStore()
-      if (gameStore.token) {
-        console.log('Auto-reconnecting with stored token...')
-        send('reconnect', { token: gameStore.token })
-      }
     }
 
     ws.value.onmessage = (event) => {
-      const message = JSON.parse(event.data)
-      console.log('Received:', message.type, message.payload)
+      const message = JSON.parse(event.data) as ServerMessage
+      console.log('Received:', message.type, message.data)
       handleMessage(message)
     }
 
@@ -78,6 +107,16 @@ export const useWebSocketStore = defineStore('websocket', () => {
     ws.value.onclose = () => {
       console.log('WebSocket disconnected')
       connected.value = false
+
+      const gameStore = useGameStore()
+
+      if (!didOpen) {
+        // The server rejected the join before the handshake ever
+        // completed (browsers don't expose the HTTP status/body for a
+        // failed upgrade, so this is necessarily a generic failure).
+        gameStore.handleJoinFailure('Could not join room — check the code and try again.')
+        return
+      }
 
       // Auto-reconnect with exponential backoff if not manually disconnected
       if (!reconnecting.value && reconnectAttempts.value < MAX_RECONNECT_ATTEMPTS) {
@@ -91,18 +130,17 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
         setTimeout(() => {
           reconnectAttempts.value++
-          connect(wsUrl)
+          connect(roomCode, name)
         }, delay)
       } else if (reconnectAttempts.value >= MAX_RECONNECT_ATTEMPTS) {
         console.error('Max reconnection attempts reached')
         reconnecting.value = false
-        const gameStore = useGameStore()
         gameStore.addError('Connection lost. Please refresh the page.')
       }
     }
   }
 
-  const send = <T>(type: string, payload: T): void => {
+  const send = <T>(type: MessageType, data: T): void => {
     // Check rate limiter
     if (!rateLimiter.canSend()) {
       console.error('Rate limit exceeded. Please slow down.')
@@ -119,8 +157,8 @@ export const useWebSocketStore = defineStore('websocket', () => {
     }
 
     if (ws.value?.readyState === WebSocket.OPEN) {
-      const message = { type, payload }
-      console.log('Sending:', type, payload)
+      const message: ClientMessage = { type, data }
+      console.log('Sending:', type, data)
       ws.value.send(JSON.stringify(message))
       rateLimiter.recordMessage()
     } else {
@@ -130,58 +168,26 @@ export const useWebSocketStore = defineStore('websocket', () => {
     }
   }
 
-  const handleMessage = (message: { type: string; payload: unknown }): void => {
+  const handleMessage = (message: ServerMessage): void => {
     const gameStore = useGameStore()
 
     switch (message.type) {
-      case 'pong':
-        // Heartbeat response - no action needed
+      case TypeWelcome:
+        gameStore.handleWelcome(message.data as WelcomePayload)
         break
-      case 'game_created':
-        gameStore.handleGameCreated(message.payload as CreateGameResponse)
+      case TypeState:
+        gameStore.handleState(message.data as StateMessage)
         break
-      case 'game_joined':
-        gameStore.handleGameJoined(message.payload as JoinGameResponse)
+      case TypePlayersLobby:
+        gameStore.handlePlayersLobby(message.data as PlayersLobbyPayload)
         break
-      case 'reconnected':
-        gameStore.handleReconnected(message.payload as ReconnectResponse)
+      case TypePlayerDisconnected:
+      case TypePlayerReconnected:
+      case TypePlayerStatus:
+        gameStore.handlePlayerStatus(message.data as PlayerStatusPayload)
         break
-      case 'lobby_update':
-        gameStore.handleLobbyUpdate(message.payload as LobbyState)
-        break
-      case 'game_started':
-        gameStore.handleGameStarted(message.payload as GameStartedNotification)
-        break
-      case 'game_state':
-        gameStore.handleGameState(message.payload as GameStateMessage)
-        break
-      case 'move_result':
-        gameStore.handleMoveResult(message.payload as MoveResultResponse)
-        break
-      case 'hand_ended':
-        gameStore.handleHandEnded(message.payload as HandEndedNotification)
-        break
-      case 'game_ended':
-        gameStore.handleGameEnded(message.payload as GameEndedNotification)
-        break
-      case 'permission_requested':
-        gameStore.handlePermissionRequested(message.payload as PermissionRequestNotification)
-        break
-      case 'permission_response':
-        gameStore.handlePermissionResponse(message.payload as PermissionResponseNotification)
-        break
-      case 'player_disconnected':
-      case 'player_reconnected':
-        gameStore.handlePlayerStatus(message.payload as PlayerStatusNotification)
-        break
-      case 'game_paused':
-        gameStore.handleGamePaused(message.payload as GamePausedNotification)
-        break
-      case 'game_resumed':
-        gameStore.handleGameResumed(message.payload as GameResumedNotification)
-        break
-      case 'error':
-        gameStore.handleError(message.payload as ErrorMessage)
+      case TypeError:
+        gameStore.handleServerError(message.data as ErrorPayload)
         break
       default:
         console.warn('Unhandled message type:', message.type)
@@ -201,6 +207,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
     connected,
     reconnecting,
     reconnectAttempts,
+    createRoom,
     connect,
     send,
     disconnect,

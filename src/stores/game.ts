@@ -2,311 +2,242 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { Ref, ComputedRef } from 'vue'
 import type {
-  CreateGameResponse,
-  JoinGameResponse,
-  ReconnectResponse,
-  LobbyState,
-  LobbyPlayer,
-  GameStateMessage,
-  MoveRequest,
-  MoveResultResponse,
-  HandEndedNotification,
-  GameEndedNotification,
-  GameStartedNotification,
-  PermissionRequestNotification,
-  PermissionResponseNotification,
-  PlayerStatusNotification,
-  GamePausedNotification,
-  GameResumedNotification,
-  ErrorMessage,
-} from '@/types/api_types'
-import type { Card, Meld, Canasta, ClientState } from '@/types/game'
+  WelcomePayload,
+  StateMessage,
+  PlayersLobbyPayload,
+  LobbySeat,
+  PlayerStatusPayload,
+  ErrorPayload,
+} from '@/types/protocol'
+import {
+  TypeDrawFromDeck,
+  TypePickUpDiscardPile,
+  TypeNewMeld,
+  TypeAddToMeld,
+  TypeBurnCards,
+  TypeGoDown,
+  TypeDiscard,
+  TypePickUpFoot,
+  TypePlayRedThree,
+  TypeGrantPermissionToGoOut,
+} from '@/types/protocol'
+import type { Card, Meld, Canasta } from '@/types/canasta'
+import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
 import { useWebSocketStore } from './websocket'
+
+const NAME_STORAGE_KEY = 'canasta_name'
+const ROOM_STORAGE_KEY = 'canasta_room'
 
 export const useGameStore = defineStore('game', () => {
   // ============================================================================
   // STATE
   // ============================================================================
 
-  const token: Ref<string | null> = ref(localStorage.getItem('canasta_token'))
-  const roomCode: Ref<string | null> = ref(localStorage.getItem('canasta_room'))
-  const playerId: Ref<number | null> = ref(
-    localStorage.getItem('canasta_player_id')
-      ? parseInt(localStorage.getItem('canasta_player_id')!)
-      : null,
-  )
+  // There's no server credential anymore (see internal/room.Room.Join) —
+  // name + roomCode are only persisted so the join form can pre-fill and a
+  // dropped connection can be resumed with the same identity.
+  const playerName: Ref<string | null> = ref(localStorage.getItem(NAME_STORAGE_KEY))
+  const roomCode: Ref<string | null> = ref(localStorage.getItem(ROOM_STORAGE_KEY))
+  const mySeatIndex: Ref<number | null> = ref(null)
 
-  const lobbyState: Ref<LobbyState | null> = ref(null)
-  const gameState: Ref<GameStateMessage | null> = ref(null)
+  const lobbySeats: Ref<LobbySeat[]> = ref([])
+  const gameState: Ref<StateMessage | null> = ref(null)
 
   const errors: Ref<string[]> = ref([])
   const notifications: Ref<string[]> = ref([])
 
   const pendingMove: Ref<boolean> = ref(false)
-  const lastMoveResult: Ref<MoveResultResponse | null> = ref(null)
+
+  let pendingJoin: { resolve: () => void; reject: (message: string) => void } | null = null
 
   // ============================================================================
   // COMPUTED
   // ============================================================================
 
-  const isInLobby: ComputedRef<boolean> = computed(() => lobbyState.value?.status === 'lobby')
+  // The room is "playing" the moment the first state broadcast arrives —
+  // there's no separate game_started message (see internal/room.Room).
+  const isPlaying: ComputedRef<boolean> = computed(() => gameState.value !== null)
 
-  const isPlaying: ComputedRef<boolean> = computed(() => lobbyState.value?.status === 'playing')
+  const isInLobby: ComputedRef<boolean> = computed(() => !isPlaying.value)
 
-  const isPaused: ComputedRef<boolean> = computed(() => lobbyState.value?.status === 'paused')
+  const isGameOver: ComputedRef<boolean> = computed(() => gameState.value?.gameOver ?? false)
 
-  const isMyTurn: ComputedRef<boolean> = computed(
-    () => gameState.value?.currentPlayer === playerId.value,
-  )
+  const winner: ComputedRef<string | undefined> = computed(() => gameState.value?.winner)
+
+  const isMyTurn: ComputedRef<boolean> = computed(() => gameState.value?.isYourTurn ?? false)
 
   const currentPhase: ComputedRef<string | undefined> = computed(() => gameState.value?.phase)
 
-  const clientState: ComputedRef<ClientState | undefined> = computed(
-    () => gameState.value?.state as ClientState | undefined,
-  )
-
   const myHand: ComputedRef<Card[]> = computed(() => {
-    const state = clientState.value
-    if (!state?.hand) return []
-    return Object.values(state.hand)
+    const hand = gameState.value?.hand
+    if (!hand) return []
+    return Object.values(hand)
   })
 
-  const myTeamScore: ComputedRef<number> = computed(() => clientState.value?.ourScore ?? 0)
+  const myTeamScore: ComputedRef<number> = computed(() => gameState.value?.ourScore ?? 0)
 
-  const opponentScore: ComputedRef<number> = computed(() => clientState.value?.otherScore ?? 0)
+  const opponentScore: ComputedRef<number> = computed(() => gameState.value?.otherScore ?? 0)
 
-  const myTeamMelds: ComputedRef<Meld[]> = computed(() => clientState.value?.ourMelds ?? [])
+  const myTeamMelds: ComputedRef<Meld[]> = computed(() => gameState.value?.ourMelds ?? [])
 
-  const myTeamCanastas: ComputedRef<Canasta[]> = computed(
-    () => clientState.value?.ourCanastas ?? [],
-  )
+  const myTeamCanastas: ComputedRef<Canasta[]> = computed(() => gameState.value?.ourCanastas ?? [])
 
   const canDraw: ComputedRef<boolean> = computed(
-    () => isMyTurn.value && currentPhase.value === 'drawing' && !pendingMove.value,
+    () => isMyTurn.value && currentPhase.value === PhaseDrawing && !pendingMove.value,
   )
 
   const canPlay: ComputedRef<boolean> = computed(
-    () => isMyTurn.value && currentPhase.value === 'playing' && !pendingMove.value,
+    () => isMyTurn.value && currentPhase.value === PhasePlaying && !pendingMove.value,
   )
 
-  const discardTopCard: ComputedRef<Card | null> = computed(
-    () => clientState.value?.discardTopCard ?? null,
+  // Whether MY team currently has permission to go out — granted by my
+  // partner via grantPermissionToGoOut(), not a formal request/response
+  // (the server has no "request" notification; see internal/protocol).
+  const canGoOut: ComputedRef<boolean> = computed(() => gameState.value?.canGoOut ?? false)
+
+  const discardTopCard: ComputedRef<Card | undefined> = computed(
+    () => gameState.value?.discardTopCard,
   )
 
-  const deckCount: ComputedRef<number> = computed(() => clientState.value?.deckCount ?? 0)
-
-  const mySlot: ComputedRef<LobbyPlayer | undefined> = computed(() =>
-    lobbyState.value?.players.find((p) => p.isYou),
-  )
-
-  const allPlayersReady: ComputedRef<boolean> = computed(() => lobbyState.value?.allReady ?? false)
+  const deckCount: ComputedRef<number> = computed(() => gameState.value?.deckCount ?? 0)
 
   // ============================================================================
   // ACTIONS - Lobby
   // ============================================================================
 
-  const createGame = (username: string, randomTeamOrder: boolean = false): void => {
+  // createRoom creates a new room over HTTP, then joins the first seat.
+  // Resolves once the server accepts the join (a `welcome` message
+  // arrives); rejects if the connection is refused.
+  const createRoom = async (name: string): Promise<string> => {
     const ws = useWebSocketStore()
-    ws.send('create_game', { username, randomTeamOrder })
+    const code = await ws.createRoom()
+    await joinRoom(code, name)
+    return code
   }
 
-  const joinGame = (code: string, username: string): void => {
-    const ws = useWebSocketStore()
-    ws.send('join_game', { roomCode: code, username })
-  }
+  // joinRoom connects directly to an existing room — no separate "join"
+  // message, the connection itself (with ?name=) is the join. Resolves
+  // once the server accepts it (a `welcome` message arrives); rejects if
+  // the connection is refused (blank name, full room, unknown room code).
+  const joinRoom = (code: string, name: string): Promise<void> => {
+    playerName.value = name
+    localStorage.setItem(NAME_STORAGE_KEY, name)
 
-  const reconnect = (): void => {
-    if (!token.value) {
-      console.error('No token available for reconnection')
-      return
-    }
-    const ws = useWebSocketStore()
-    ws.send('reconnect', { token: token.value })
-  }
-
-  const setReady = (ready: boolean): void => {
-    const ws = useWebSocketStore()
-    ws.send('set_ready', { ready })
-  }
-
-  const updateTeamOrder = (playerOrder: [string, string, string, string]): void => {
-    const ws = useWebSocketStore()
-    ws.send('update_team_order', { playerOrder })
-  }
-
-  const leaveGame = (): void => {
-    const ws = useWebSocketStore()
-    ws.send('leave_game', {})
-    clearGameState()
+    return new Promise((resolve, reject) => {
+      pendingJoin = { resolve, reject }
+      const ws = useWebSocketStore()
+      ws.connect(code, name)
+    })
   }
 
   // ============================================================================
   // ACTIONS - Gameplay
   // ============================================================================
 
-  const executeMove = (move: MoveRequest): void => {
+  const drawFromDeck = (): void => {
+    sendMove(TypeDrawFromDeck, {})
+  }
+
+  const pickUpDiscardPile = (cardIds: number[]): void => {
+    sendMove(TypePickUpDiscardPile, { cardIds })
+  }
+
+  const newMeld = (cardIds: number[]): void => {
+    sendMove(TypeNewMeld, { cardIds })
+  }
+
+  const addToMeld = (cardIds: number[], meldId: number): void => {
+    sendMove(TypeAddToMeld, { cardIds, meldId })
+  }
+
+  const burnCards = (cardIds: number[], canastaId: number): void => {
+    sendMove(TypeBurnCards, { cardIds, canastaId })
+  }
+
+  const goDown = (): void => {
+    sendMove(TypeGoDown, {})
+  }
+
+  const discard = (cardId: number): void => {
+    sendMove(TypeDiscard, { cardId })
+  }
+
+  const pickUpFoot = (): void => {
+    sendMove(TypePickUpFoot, {})
+  }
+
+  const playRedThree = (cardIds: number[], fromFoot: boolean = false): void => {
+    sendMove(TypePlayRedThree, { cardIds, fromFoot })
+  }
+
+  // grantPermissionToGoOut lets my partner authorize me to go out. Sent by
+  // the partner, not the current player — there's no formal "request"
+  // round-trip; the partner decides based on the visible board (or being
+  // asked out loud).
+  const grantPermissionToGoOut = (): void => {
+    sendMove(TypeGrantPermissionToGoOut, {})
+  }
+
+  const sendMove = <T>(type: string, data: T): void => {
     if (pendingMove.value) {
       console.warn('Move already in progress')
       return
     }
-
     pendingMove.value = true
-    lastMoveResult.value = null
-
     const ws = useWebSocketStore()
-    ws.send('execute_move', move)
-  }
-
-  const drawFromDeck = (): void => {
-    executeMove({ type: 'draw_from_deck' })
-  }
-
-  const pickupDiscardPile = (cardIds: number[]): void => {
-    executeMove({ type: 'pickup_discard_pile', ids: cardIds })
-  }
-
-  const createMeld = (cardIds: number[]): void => {
-    executeMove({ type: 'create_meld', ids: cardIds })
-  }
-
-  const addToMeld = (meldId: number, cardIds: number[]): void => {
-    executeMove({ type: 'add_to_meld', id: meldId, ids: cardIds })
-  }
-
-  const burnCard = (meldId: number, cardIds: number[]): void => {
-    executeMove({ type: 'burn_card', id: meldId, ids: cardIds })
-  }
-
-  const goDown = (): void => {
-    executeMove({ type: 'go_down' })
-  }
-
-  const discard = (cardId: number): void => {
-    executeMove({ type: 'discard', id: cardId })
-  }
-
-  const pickupFoot = (): void => {
-    executeMove({ type: 'pickup_foot' })
-  }
-
-  const askToGoOut = (): void => {
-    executeMove({ type: 'ask_to_go_out' })
-  }
-
-  const respondGoOut = (approved: boolean): void => {
-    executeMove({ type: 'respond_go_out', id: approved ? 1 : 0 })
-  }
-
-  const playRedThree = (cardIds: number[], fromFoot: boolean = false): void => {
-    executeMove({ type: 'play_red_three', ids: cardIds, fromFoot })
+    ws.send(type, data)
   }
 
   // ============================================================================
   // MESSAGE HANDLERS
   // ============================================================================
 
-  const handleGameCreated = (payload: CreateGameResponse): void => {
-    token.value = payload.token
+  const handleWelcome = (payload: WelcomePayload): void => {
+    mySeatIndex.value = payload.seatIndex
     roomCode.value = payload.roomCode
-    playerId.value = payload.playerId
+    localStorage.setItem(ROOM_STORAGE_KEY, payload.roomCode)
 
-    localStorage.setItem('canasta_token', payload.token)
-    localStorage.setItem('canasta_room', payload.roomCode)
-    localStorage.setItem('canasta_player_id', payload.playerId.toString())
-
-    addNotification(`Game created! Room code: ${payload.roomCode}`)
+    pendingJoin?.resolve()
+    pendingJoin = null
   }
 
-  const handleGameJoined = (payload: JoinGameResponse): void => {
-    if (payload.success) {
-      token.value = payload.token
-      playerId.value = payload.playerId
+  const handleState = (payload: StateMessage): void => {
+    const previousHand = gameState.value?.handNumber
+    const wasGameOver = gameState.value?.gameOver ?? false
 
-      localStorage.setItem('canasta_token', payload.token)
-      localStorage.setItem('canasta_player_id', payload.playerId.toString())
-
-      addNotification('Successfully joined game!')
-    } else {
-      addError(payload.message || 'Failed to join game')
-    }
-  }
-
-  const handleReconnected = (payload: ReconnectResponse): void => {
-    if (payload.success) {
-      roomCode.value = payload.roomCode || roomCode.value
-      playerId.value = payload.playerId ?? playerId.value
-
-      if (payload.roomCode) {
-        localStorage.setItem('canasta_room', payload.roomCode)
-      }
-
-      addNotification('Reconnected successfully!')
-    } else {
-      addError(payload.message || 'Reconnection failed')
-      clearGameState()
-    }
-  }
-
-  const handleLobbyUpdate = (payload: LobbyState): void => {
-    lobbyState.value = payload
-  }
-
-  const handleGameStarted = (payload: GameStartedNotification): void => {
-    addNotification(payload.message)
-  }
-
-  const handleGameState = (payload: GameStateMessage): void => {
     gameState.value = payload
     pendingMove.value = false
-  }
 
-  const handleMoveResult = (payload: MoveResultResponse): void => {
-    lastMoveResult.value = payload
-    pendingMove.value = false
-
-    if (!payload.success) {
-      addError(payload.message || 'Move failed')
+    if (previousHand !== undefined && payload.handNumber !== previousHand) {
+      addNotification(`Hand ${payload.handNumber} started!`)
+    }
+    if (!wasGameOver && payload.gameOver) {
+      addNotification(payload.winner === 'tie' ? "It's a tie!" : `Game over! ${payload.winner} wins!`)
     }
   }
 
-  const handleHandEnded = (payload: HandEndedNotification): void => {
-    addNotification(
-      `Hand ${payload.handNumber} ended! Score: ${payload.teamAScore} - ${payload.teamBScore}`,
-    )
+  const handlePlayersLobby = (payload: PlayersLobbyPayload): void => {
+    lobbySeats.value = payload.seats
   }
 
-  const handleGameEnded = (payload: GameEndedNotification): void => {
-    addNotification(
-      `Game Over! Winner: ${payload.winnerTeam} (${payload.teamAScore} - ${payload.teamBScore})`,
-    )
+  const handlePlayerStatus = (payload: PlayerStatusPayload): void => {
+    const seat = lobbySeats.value.find((s) => s.seatIndex === payload.seatIndex)
+    addNotification(`${seat?.name ?? 'A player'} is ${payload.status}`)
   }
 
-  const handlePermissionRequested = (payload: PermissionRequestNotification): void => {
-    addNotification(`${payload.requestingName} wants to go out. Do you approve?`)
+  const handleServerError = (payload: ErrorPayload): void => {
+    addError(payload.message)
   }
 
-  const handlePermissionResponse = (payload: PermissionResponseNotification): void => {
-    addNotification(payload.approved ? 'Partner approved going out!' : 'Partner denied going out')
-  }
-
-  const handlePlayerStatus = (payload: PlayerStatusNotification): void => {
-    const status = payload.connected ? 'connected' : 'disconnected'
-    addNotification(`${payload.username} ${status}`)
-  }
-
-  const handleGamePaused = (payload: GamePausedNotification): void => {
-    addNotification(payload.message)
-  }
-
-  const handleGameResumed = (payload: GameResumedNotification): void => {
-    addNotification(payload.message)
-  }
-
-  const handleError = (payload: ErrorMessage): void => {
-    const message = payload.message.includes(':')
-      ? payload.message.split(': ')[1] || payload.message
-      : payload.message
-    addError(message)
+  // handleJoinFailure is called by the websocket store when a connection
+  // is rejected before ever completing (see connect()'s didOpen check).
+  const handleJoinFailure = (message: string): void => {
+    if (pendingJoin) {
+      pendingJoin.reject(message)
+      pendingJoin = null
+    } else {
+      addError(message)
+    }
   }
 
   // ============================================================================
@@ -330,36 +261,32 @@ export const useGameStore = defineStore('game', () => {
   }
 
   const clearGameState = (): void => {
-    token.value = null
     roomCode.value = null
-    playerId.value = null
-    lobbyState.value = null
+    mySeatIndex.value = null
+    lobbySeats.value = []
     gameState.value = null
 
-    localStorage.removeItem('canasta_token')
-    localStorage.removeItem('canasta_room')
-    localStorage.removeItem('canasta_player_id')
+    localStorage.removeItem(ROOM_STORAGE_KEY)
   }
 
   return {
     // State
-    token,
+    playerName,
     roomCode,
-    playerId,
-    lobbyState,
+    mySeatIndex,
+    lobbySeats,
     gameState,
     errors,
     notifications,
     pendingMove,
-    lastMoveResult,
 
     // Computed
     isInLobby,
     isPlaying,
-    isPaused,
+    isGameOver,
+    winner,
     isMyTurn,
     currentPhase,
-    clientState,
     myHand,
     myTeamScore,
     opponentScore,
@@ -367,49 +294,33 @@ export const useGameStore = defineStore('game', () => {
     myTeamCanastas,
     canDraw,
     canPlay,
+    canGoOut,
     discardTopCard,
     deckCount,
-    mySlot,
-    allPlayersReady,
 
     // Actions - Lobby
-    createGame,
-    joinGame,
-    reconnect,
-    setReady,
-    updateTeamOrder,
-    leaveGame,
+    createRoom,
+    joinRoom,
 
     // Actions - Gameplay
-    executeMove,
     drawFromDeck,
-    pickupDiscardPile,
-    createMeld,
+    pickUpDiscardPile,
+    newMeld,
     addToMeld,
-    burnCard,
+    burnCards,
     goDown,
     discard,
-    pickupFoot,
-    askToGoOut,
-    respondGoOut,
+    pickUpFoot,
     playRedThree,
+    grantPermissionToGoOut,
 
     // Handlers
-    handleGameCreated,
-    handleGameJoined,
-    handleReconnected,
-    handleLobbyUpdate,
-    handleGameStarted,
-    handleGameState,
-    handleMoveResult,
-    handleHandEnded,
-    handleGameEnded,
-    handlePermissionRequested,
-    handlePermissionResponse,
+    handleWelcome,
+    handleState,
+    handlePlayersLobby,
     handlePlayerStatus,
-    handleGamePaused,
-    handleGameResumed,
-    handleError,
+    handleServerError,
+    handleJoinFailure,
 
     // Utilities
     addError,
