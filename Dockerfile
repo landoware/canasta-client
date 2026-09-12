@@ -2,8 +2,8 @@
 FROM oven/bun:1-alpine AS build
 WORKDIR /app
 
-ARG VITE_WS_URL
-ENV VITE_WS_URL=$VITE_WS_URL
+ARG VITE_SERVER_URL
+ENV VITE_SERVER_URL=$VITE_SERVER_URL
 
 COPY package.json package.json ./
 COPY bun.lock bun.lock
