@@ -184,12 +184,18 @@ describe('isValidAddToMeld', () => {
     expect(isValidAddToMeld(meld, [])).toBe(false)
   })
 
-  it('an all-wild meld only accepts more wildcards, never a real rank, and stays capped at 3', () => {
-    // The server's AddToMeld (unlike NewMeld) enforces the 3-wildcard cap
-    // unconditionally, with no all-wild exception.
-    const meld = { rank: 14, wildCount: 2 } // Wild
-    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Two }])).toBe(true) // 2 + 1 = 3, ok
+  it('an all-wild meld only accepts more wildcards, never a real rank, with no wildcard cap', () => {
+    // Mirrors ValidateMeld's own "allWilds" allowance: unlike a normal
+    // meld, an all-wild meld has no 3-wildcard ceiling at all.
+    const meld = { rank: 14, wildCount: 3 } // Wild, already at what would
+    // be the cap for a normal meld
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Two }])).toBe(true)
     expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Four }])).toBe(false)
+  })
+
+  it('an all-wild meld keeps accepting wildcards well past what would be the normal cap', () => {
+    const meld = { rank: 14, wildCount: 10 } // Wild
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Joker }])).toBe(true)
   })
 })
 

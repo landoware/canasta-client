@@ -11,7 +11,13 @@ const props = defineProps<{
   handLength: number
   isCurrentTurn: boolean
   position: 'top' | 'left' | 'right'
+  // Demo-only: lets a click on this player's name request switching to
+  // control them — see OtherPlayers.vue, which is the only place this is
+  // ever set true. Left false (the default), the name renders exactly as
+  // it always has.
+  clickable?: boolean
 }>()
+const emit = defineEmits<{ select: [] }>()
 
 const FAN_THRESHOLD = 15
 const CARD_SPACING_PX = 20
@@ -108,9 +114,12 @@ const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
     </div>
   </div>
 
-  <div
-    class="fixed pointer-events-none font-rs-bold text-lg"
+  <button
+    type="button"
+    class="fixed appearance-none border-0 bg-transparent p-0 font-rs-bold text-lg disabled:cursor-default"
+    :disabled="!clickable"
     :class="[
+      clickable ? 'pointer-events-auto cursor-pointer hover:brightness-125' : 'pointer-events-none',
       isCurrentTurn
         ? 'text-rs-yellow [filter:drop-shadow(0_0_6px_var(--color-rs-yellow))]'
         : 'text-card-white',
@@ -133,7 +142,8 @@ const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
           position === 'right',
       },
     ]"
+    @click="clickable && emit('select')"
   >
     {{ name }}
-  </div>
+  </button>
 </template>

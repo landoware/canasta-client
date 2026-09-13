@@ -13,7 +13,13 @@ import Button from '@/components/Button.vue'
 // unset, which is how vue-router mounts this for the real /game/:roomCode
 // route. DemoView passes a specific seat's instanceId to reuse this same
 // component for each of its 4 seats.
-const props = defineProps<{ instanceId?: string }>()
+//
+// allowSeatSwitch is also demo-only: left false (its default) for the real
+// /game/:roomCode route, so a player's own name never renders as
+// clickable there — DemoView is the only caller that ever sets it, to
+// let clicking another player's name switch which seat you're playing.
+const props = defineProps<{ instanceId?: string; allowSeatSwitch?: boolean }>()
+const emit = defineEmits<{ 'select-seat': [seatIndex: number] }>()
 const gameStore = useGameStore(props.instanceId)
 const settings = useSettingsStore()
 
@@ -21,7 +27,7 @@ const settings = useSettingsStore()
 // every render — see useSortableHand for why (keeps the arrangement
 // stable across draws/discards instead of resorting to id order).
 const myHand = computed(() => gameStore.myHand)
-const { orderedCards: handCards, sort: sortHandNow } = useSortableHand(myHand)
+const { orderedCards: handCards, sort: sortHandNow, moveCard } = useSortableHand(myHand)
 
 function onSortClick(): void {
   sortHandNow(settings.sortMethod)
@@ -61,13 +67,22 @@ function clearSelection(): void {
     :selected-card-id="singleSelectedCardId"
     @discarded="clearSelection"
   />
-  <OtherPlayers :game-store="gameStore" />
+  <OtherPlayers
+    :game-store="gameStore"
+    :clickable-names="allowSeatSwitch"
+    @select-seat="emit('select-seat', $event)"
+  />
   <TeamMelds
     :game-store="gameStore"
     :selected-card-ids="selectedCardIds"
     @melded="clearSelection"
   />
-  <PlayerHand :cards="handCards" :selected-ids="selectedCardIds" @toggle="toggleCardSelection" />
+  <PlayerHand
+    :cards="handCards"
+    :selected-ids="selectedCardIds"
+    @toggle="toggleCardSelection"
+    @reorder="moveCard"
+  />
   <div class="fixed bottom-8 right-8">
     <Button label="Sort" @click="onSortClick" />
   </div>

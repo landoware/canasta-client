@@ -18,6 +18,7 @@ import {
   Two,
   Joker,
   Three,
+  Wild,
 } from '@/types/canasta'
 
 export const isWildCard = (card: Card): boolean => {
@@ -96,9 +97,11 @@ export const isValidNewMeld = (cards: Card[]): boolean => {
 // Mirrors internal/canasta/moves.go's Game.AddToMeld exactly, including
 // checking wildcard count cumulatively across the whole batch being added
 // (the server increments meld.WildCount once per wild card in the loop
-// and bails as soon as it exceeds 3). Works the same whether the meld is
-// one of the player's staging melds or one of the team's official melds —
-// the server now looks in both (see TeamMelds.vue).
+// and bails as soon as it exceeds 3) — except an all-wild meld, which has
+// no wildcard cap at all, same as isValidNewMeld's allowance when the
+// meld is first created. Works the same whether the meld is one of the
+// player's staging melds or one of the team's official melds — the
+// server now looks in both (see TeamMelds.vue).
 export const isValidAddToMeld = (
   meld: { rank: Rank; wildCount: number },
   cards: Card[],
@@ -113,7 +116,7 @@ export const isValidAddToMeld = (
     if (meld.rank === Seven && wild) return false
     if (wild) {
       wildCount++
-      if (wildCount > 3) return false
+      if (meld.rank !== Wild && wildCount > 3) return false
     }
   }
   return true

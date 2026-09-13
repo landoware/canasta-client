@@ -22,5 +22,18 @@ export function useSortableHand(cards: Ref<Card[]>) {
     orderedCards.value = sortHand(orderedCards.value, method)
   }
 
-  return { orderedCards, sort }
+  // Drag-to-reorder: moves one card to an arbitrary slot, leaving everything
+  // else in the order the player already arranged (manually or via sort).
+  function moveCard(cardId: number, toIndex: number): void {
+    const current = orderedCards.value
+    const fromIndex = current.findIndex((card) => card.id === cardId)
+    if (fromIndex === -1) return
+
+    const next = [...current]
+    const [moved] = next.splice(fromIndex, 1)
+    next.splice(Math.max(0, Math.min(toIndex, next.length)), 0, moved!)
+    orderedCards.value = next
+  }
+
+  return { orderedCards, sort, moveCard }
 }

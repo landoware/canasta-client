@@ -47,4 +47,26 @@ describe('OtherPlayerHand', () => {
     expect(isTurnClasses).not.toEqual(notTurnClasses)
     expect(isTurnClasses.join(' ')).toContain('text-rs-yellow')
   })
+
+  it('is not clickable by default, and clicking the name does not emit select', async () => {
+    const wrapper = mount(OtherPlayerHand, {
+      props: { name: 'Dave', handLength: 5, isCurrentTurn: false, position: 'top' },
+    })
+    const nameButton = wrapper.find('.font-rs-bold.text-lg')
+
+    expect(nameButton.attributes('disabled')).toBeDefined()
+    await nameButton.trigger('click')
+    expect(wrapper.emitted('select')).toBeUndefined()
+  })
+
+  it('emits select when clicked with clickable set', async () => {
+    const wrapper = mount(OtherPlayerHand, {
+      props: { name: 'Dave', handLength: 5, isCurrentTurn: false, position: 'top', clickable: true },
+    })
+    const nameButton = wrapper.find('.font-rs-bold.text-lg')
+
+    expect(nameButton.attributes('disabled')).toBeUndefined()
+    await nameButton.trigger('click')
+    expect(wrapper.emitted('select')).toHaveLength(1)
+  })
 })

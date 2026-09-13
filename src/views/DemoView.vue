@@ -2,8 +2,9 @@
 // Dev-only harness: creates one real room and joins all 4 seats as real
 // websocket connections (no server-side demo mode — this is exactly what 4
 // separate real clients joining would look like), then reuses GameView
-// itself so the demo renders identically to the real game. Seat switching
-// and other demo-specific controls come later.
+// itself so the demo renders identically to the real game. Clicking
+// another player's name (GameView's allowSeatSwitch) switches which seat's
+// store GameView is mounted against.
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
@@ -15,6 +16,20 @@ const SEAT_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4']
 
 const gameStores = SEAT_IDS.map((id) => useGameStore(id))
 const wsStores = SEAT_IDS.map((id) => useWebSocketStore(id))
+
+// Seat assignment is join order and races (see initDemo below), so this
+// starts pointing at whichever instance actually became seat 0 rather than
+// assuming SEAT_IDS[0] did.
+const activeInstanceId = ref(SEAT_IDS[0]!)
+
+// select-seat carries an absolute seat index (0-3), not an instanceId —
+// OtherPlayers/GameView only know seats, not that this is a multi-store
+// demo — so it's translated here via each store's own mySeatIndex.
+function onSelectSeat(seatIndex: number): void {
+  const index = gameStores.findIndex((store) => store.mySeatIndex === seatIndex)
+  if (index === -1) return
+  activeInstanceId.value = SEAT_IDS[index]!
+}
 
 const initializing = ref(true)
 const initError = ref<string | null>(null)
@@ -56,5 +71,14 @@ onUnmounted(() => {
     <Button label="Retry" @click="initDemo" />
   </div>
 
-  <GameView v-else :instance-id="SEAT_IDS[0]" />
+  <!-- :key forces a fresh GameView (and its own local UI state — hand
+       order, card selection) whenever the active seat switches, rather
+       than reusing one instance across different gameStore instanceIds. -->
+  <GameView
+    v-else
+    :key="activeInstanceId"
+    :instance-id="activeInstanceId"
+    :allow-seat-switch="true"
+    @select-seat="onSelectSeat"
+  />
 </template>

@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import GameView from '../GameView.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
 import DiscardPile from '@/components/board/DiscardPile.vue'
+import OtherPlayerHand from '@/components/board/OtherPlayerHand.vue'
 import Button from '@/components/Button.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
@@ -192,5 +193,30 @@ describe('GameView', () => {
     expect(wrapper.find('button[aria-label="Create meld from selected cards"]').exists()).toBe(
       false,
     )
+  })
+
+  it('does not make other players\' names clickable unless allowSeatSwitch is set', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ players: [{ name: 'Bob', handLength: 5, hasFoot: false }] }))
+
+    const wrapper = mount(GameView)
+
+    wrapper.findAllComponents(OtherPlayerHand).forEach((hand) => {
+      expect(hand.props('clickable')).toBeFalsy()
+    })
+  })
+
+  it('emits select-seat when a name is clicked with allowSeatSwitch set', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ players: [{ name: 'Bob', handLength: 5, hasFoot: false }] }))
+
+    const wrapper = mount(GameView, { props: { allowSeatSwitch: true } })
+    wrapper.findAllComponents(OtherPlayerHand).forEach((hand) => {
+      expect(hand.props('clickable')).toBe(true)
+    })
+
+    wrapper.findComponent(OtherPlayerHand).vm.$emit('select')
+
+    expect(wrapper.emitted('select-seat')).toHaveLength(1)
   })
 })

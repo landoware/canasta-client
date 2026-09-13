@@ -100,4 +100,44 @@ describe('OtherPlayers', () => {
     expect(left!.props()).toMatchObject({ name: 'Seat3', handLength: 7, isCurrentTurn: true })
     expect(right!.props()).toMatchObject({ name: 'Seat1', handLength: 6, isCurrentTurn: false })
   })
+
+  it('leaves clickable unset on every OtherPlayerHand by default', () => {
+    const gameStore = useGameStore()
+    gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+    gameStore.handleState(baseState())
+
+    const wrapper = mount(OtherPlayers, { props: { gameStore } })
+
+    wrapper.findAllComponents(OtherPlayerHand).forEach((hand) => {
+      expect(hand.props('clickable')).toBeFalsy()
+    })
+  })
+
+  it('passes clickableNames through to every OtherPlayerHand', () => {
+    const gameStore = useGameStore()
+    gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+    gameStore.handleState(baseState())
+
+    const wrapper = mount(OtherPlayers, { props: { gameStore, clickableNames: true } })
+
+    wrapper.findAllComponents(OtherPlayerHand).forEach((hand) => {
+      expect(hand.props('clickable')).toBe(true)
+    })
+  })
+
+  it('emits select-seat with the clicked player\'s absolute seat index', () => {
+    const gameStore = useGameStore()
+    gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+    gameStore.handleState(baseState())
+
+    const wrapper = mount(OtherPlayers, { props: { gameStore, clickableNames: true } })
+    const [top, left, right] = wrapper.findAllComponents(OtherPlayerHand)
+
+    // seat 0 -> left=1, partner(top)=2, right=3
+    top!.vm.$emit('select')
+    left!.vm.$emit('select')
+    right!.vm.$emit('select')
+
+    expect(wrapper.emitted('select-seat')).toEqual([[2], [1], [3]])
+  })
 })

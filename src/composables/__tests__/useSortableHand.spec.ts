@@ -45,4 +45,42 @@ describe('useSortableHand', () => {
 
     expect(orderedCards.value).toEqual([four, ace])
   })
+
+  describe('moveCard', () => {
+    it('moves a card from the middle to the front', () => {
+      const cards = ref([four, eight, ace])
+      const { orderedCards, moveCard } = useSortableHand(cards)
+
+      moveCard(eight.id, 0)
+
+      expect(orderedCards.value).toEqual([eight, four, ace])
+    })
+
+    it('moves a card from the front to the end', () => {
+      const cards = ref([four, eight, ace])
+      const { orderedCards, moveCard } = useSortableHand(cards)
+
+      moveCard(four.id, 2)
+
+      expect(orderedCards.value).toEqual([eight, ace, four])
+    })
+
+    it('clamps an out-of-range target index to the end', () => {
+      const cards = ref([four, eight, ace])
+      const { orderedCards, moveCard } = useSortableHand(cards)
+
+      moveCard(four.id, 99)
+
+      expect(orderedCards.value).toEqual([eight, ace, four])
+    })
+
+    it('does nothing for a card id that is not in the hand', () => {
+      const cards = ref([four, eight, ace])
+      const { orderedCards, moveCard } = useSortableHand(cards)
+
+      moveCard(999, 0)
+
+      expect(orderedCards.value).toEqual([four, eight, ace])
+    })
+  })
 })

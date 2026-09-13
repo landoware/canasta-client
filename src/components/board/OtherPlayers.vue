@@ -7,7 +7,13 @@ import type { GameStore } from '@/stores/game'
 import OtherPlayerHand from './OtherPlayerHand.vue'
 import { otherSeatIndices, otherPlayerAtSeat } from '@/utils/seatLayout'
 
-const props = defineProps<{ gameStore: GameStore }>()
+const props = defineProps<{
+  gameStore: GameStore
+  // Demo-only: see GameView.vue's allowSeatSwitch, which is the only
+  // place this is ever passed true.
+  clickableNames?: boolean
+}>()
+const emit = defineEmits<{ 'select-seat': [seatIndex: number] }>()
 
 const seats = computed(() => otherSeatIndices(props.gameStore.mySeatIndex ?? 0))
 
@@ -35,17 +41,23 @@ const right = computed(() => playerAt(seats.value.right))
     :name="partner.name"
     :hand-length="partner.handLength"
     :is-current-turn="partner.isCurrentTurn"
+    :clickable="clickableNames"
+    @select="emit('select-seat', seats.partner)"
   />
   <OtherPlayerHand
     position="left"
     :name="left.name"
     :hand-length="left.handLength"
     :is-current-turn="left.isCurrentTurn"
+    :clickable="clickableNames"
+    @select="emit('select-seat', seats.left)"
   />
   <OtherPlayerHand
     position="right"
     :name="right.name"
     :hand-length="right.handLength"
     :is-current-turn="right.isCurrentTurn"
+    :clickable="clickableNames"
+    @select="emit('select-seat', seats.right)"
   />
 </template>
