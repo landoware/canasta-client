@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useSettingsStore, MIN_CARD_SCALE, MAX_CARD_SCALE } from '@/stores/settings'
+import { ref } from "vue";
+import { useSettingsStore, MIN_CARD_SCALE, MAX_CARD_SCALE } from "@/stores/settings";
+import { SORT_METHOD_OPTIONS } from "@/utils/handSort";
 
-const settings = useSettingsStore()
-const isOpen = ref(false)
+const settings = useSettingsStore();
+const isOpen = ref(false);
 </script>
 
 <template>
-  <button
-    type="button"
+  <button type="button"
     class="fixed top-4 left-4 z-50 flex flex-col gap-1.5 rounded-md bg-black/40 p-3 hover:bg-black/60"
-    aria-label="Open settings"
-    @click="isOpen = true"
-  >
+    aria-label="Open settings" @click="isOpen = true">
     <span class="block h-0.5 w-6 bg-card-white"></span>
     <span class="block h-0.5 w-6 bg-card-white"></span>
     <span class="block h-0.5 w-6 bg-card-white"></span>
@@ -27,21 +25,20 @@ const isOpen = ref(false)
 
       <label class="flex flex-col gap-2">
         <span>Card size ({{ settings.cardScale.toFixed(2) }}x)</span>
-        <input
-          v-model.number="settings.cardScale"
-          type="range"
-          :min="MIN_CARD_SCALE"
-          :max="MAX_CARD_SCALE"
-          step="0.05"
-        />
+        <input v-model.number="settings.cardScale" type="range" :min="MIN_CARD_SCALE" :max="MAX_CARD_SCALE"
+          step="0.05" />
+      </label>
+
+      <label class="flex flex-col gap-2">
+        <span>Sorting method</span>
+        <select v-model="settings.sortMethod" class="rounded-md p-2">
+          <option v-for="option in SORT_METHOD_OPTIONS" :key="option.value" :value="option.value" class="text-black">
+            {{ option.label }}
+          </option>
+        </select>
       </label>
     </div>
 
-    <button
-      type="button"
-      class="flex-1 bg-black/40"
-      aria-label="Close settings"
-      @click="isOpen = false"
-    ></button>
+    <button type="button" class="flex-1 bg-black/40" aria-label="Close settings" @click="isOpen = false"></button>
   </div>
 </template>

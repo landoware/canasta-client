@@ -4,32 +4,32 @@
 // then click where they go" (e.g. the discard pile), and the destination
 // (a sibling of this component) needs to see the same selection GameView
 // does, so GameView owns it and this component just requests toggles.
-import { ref, computed } from 'vue'
-import type { Card } from '@/types/canasta'
-import PlayingCard from './PlayingCard.vue'
+import { ref, computed } from "vue";
+import type { Card } from "@/types/canasta";
+import PlayingCard from "./PlayingCard.vue";
 
-const props = defineProps<{ cards: Card[]; selectedIds: Set<number> }>()
-const emit = defineEmits<{ toggle: [id: number] }>()
+const props = defineProps<{ cards: Card[]; selectedIds: Set<number> }>();
+const emit = defineEmits<{ toggle: [id: number] }>();
 
-const hoveredId = ref<number | null>(null)
+const hoveredId = ref<number | null>(null);
 
 function isSelected(id: number): boolean {
-  return props.selectedIds.has(id)
+  return props.selectedIds.has(id);
 }
 
-const CARD_SPACING_PX = 30
-const SELECTED_LIFT_PERCENT = 20
-const HOVERED_LIFT_PERCENT = 10
+const CARD_SPACING_PX = 30;
+const SELECTED_LIFT_PERCENT = 20;
+const HOVERED_LIFT_PERCENT = 10;
 
 const cardLayouts = computed(() => {
-  const count = props.cards.length
-  const center = (count - 1) / 2
+  const count = props.cards.length;
+  const center = (count - 1) / 2;
 
   return props.cards.map((card, i) => {
-    const offsetPx = (i - center) * CARD_SPACING_PX
+    const offsetPx = (i - center) * CARD_SPACING_PX;
     const liftPercent =
       (isSelected(card.id) ? SELECTED_LIFT_PERCENT : 0) +
-      (hoveredId.value === card.id ? HOVERED_LIFT_PERCENT : 0)
+      (hoveredId.value === card.id ? HOVERED_LIFT_PERCENT : 0);
 
     return {
       card,
@@ -39,34 +39,31 @@ const cardLayouts = computed(() => {
         transform: `translate(calc(-50% + ${offsetPx}px), -${liftPercent}%)`,
         zIndex: i,
       },
-    }
-  })
-})
+    };
+  });
+});
 </script>
 
 <template>
   <div class="fixed inset-x-0 bottom-0 flex translate-y-1/2 justify-center pointer-events-none">
-    <div class="relative h-[clamp(8rem,20vw,14rem)] w-full max-w-5xl">
+    <!-- Height is derived from the same scaled card width (via the PNG's
+         769:1065 aspect ratio) rather than an independent fixed clamp, so
+         translate-y-1/2 above stays "half a card tall" at any --card-scale
+         instead of drifting the whole hand offscreen at small scales. -->
+    <div
+      class="relative h-[calc(var(--card-base-width)*var(--card-scale,1)*1065/769)] w-full max-w-5xl"
+    >
       <!-- Selected highlight is a drop-shadow, not a ring/border: it
            follows the PNG's actual alpha shape rather than our CSS box —
            the source art has transparent padding and its own corner
            radius that don't line up with a CSS border-radius. -->
-      <button
-        v-for="layout in cardLayouts"
-        :key="layout.card.id"
-        type="button"
+      <button v-for="layout in cardLayouts" :key="layout.card.id" type="button"
         class="absolute bottom-0 left-1/2 w-[calc(var(--card-base-width)*var(--card-scale,1))] transition-all duration-150 pointer-events-auto cursor-pointer"
-        :class="
-          isSelected(layout.card.id)
+        :class="isSelected(layout.card.id)
             ? '[filter:drop-shadow(0_0_6px_var(--color-card-blue))_drop-shadow(0_0_14px_var(--color-card-blue))]'
             : ''
-        "
-        :style="layout.style"
-        :data-selected="isSelected(layout.card.id)"
-        @click="emit('toggle', layout.card.id)"
-        @mouseenter="hoveredId = layout.card.id"
-        @mouseleave="hoveredId = null"
-      >
+          " :style="layout.style" :data-selected="isSelected(layout.card.id)" @click="emit('toggle', layout.card.id)"
+        @mouseenter="hoveredId = layout.card.id" @mouseleave="hoveredId = null">
         <PlayingCard :card="layout.card" />
       </button>
     </div>

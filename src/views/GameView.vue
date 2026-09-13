@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
+import { useSettingsStore } from '@/stores/settings'
+import { useSortableHand } from '@/composables/useSortableHand'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
+import Button from '@/components/Button.vue'
 
 // instanceId defaults to the main (single-player) store instance when
 // unset, which is how vue-router mounts this for the real /game/:roomCode
@@ -10,6 +13,17 @@ import PlayerHand from '@/components/board/PlayerHand.vue'
 // component for each of its 4 seats.
 const props = defineProps<{ instanceId?: string }>()
 const gameStore = useGameStore(props.instanceId)
+const settings = useSettingsStore()
+
+// Hand order is local UI state, not derived fresh from gameStore.myHand
+// every render — see useSortableHand for why (keeps the arrangement
+// stable across draws/discards instead of resorting to id order).
+const myHand = computed(() => gameStore.myHand)
+const { orderedCards: handCards, sort: sortHandNow } = useSortableHand(myHand)
+
+function onSortClick(): void {
+  sortHandNow(settings.sortMethod)
+}
 
 // The move model is "select card(s) in hand, then click where they go"
 // (e.g. the discard pile). Selection lives here, not inside PlayerHand,
@@ -45,9 +59,8 @@ function clearSelection(): void {
     :selected-card-id="singleSelectedCardId"
     @discarded="clearSelection"
   />
-  <PlayerHand
-    :cards="gameStore.myHand"
-    :selected-ids="selectedCardIds"
-    @toggle="toggleCardSelection"
-  />
+  <PlayerHand :cards="handCards" :selected-ids="selectedCardIds" @toggle="toggleCardSelection" />
+  <div class="fixed bottom-8 right-8">
+    <Button label="Sort" @click="onSortClick" />
+  </div>
 </template>

@@ -3,6 +3,7 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import SettingsMenu from '../SettingsMenu.vue'
 import { useSettingsStore, MIN_CARD_SCALE, MAX_CARD_SCALE } from '@/stores/settings'
+import { SORT_METHOD_OPTIONS, SortRankDescending } from '@/utils/handSort'
 
 describe('SettingsMenu', () => {
   beforeEach(() => {
@@ -37,5 +38,25 @@ describe('SettingsMenu', () => {
 
     await slider.setValue('1.5')
     expect(settings.cardScale).toBe(1.5)
+  })
+
+  it('renders one option per sort method in the dropdown, defaulting to rank ascending', async () => {
+    const wrapper = mount(SettingsMenu)
+    await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+    const select = wrapper.find('select')
+    const options = select.findAll('option')
+    expect(options).toHaveLength(SORT_METHOD_OPTIONS.length)
+    expect((select.element as HTMLSelectElement).value).toBe(SORT_METHOD_OPTIONS[0]!.value)
+  })
+
+  it('updates the sortMethod setting when a different option is chosen', async () => {
+    const wrapper = mount(SettingsMenu)
+    const settings = useSettingsStore()
+    await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+    await wrapper.find('select').setValue(SortRankDescending)
+
+    expect(settings.sortMethod).toBe(SortRankDescending)
   })
 })

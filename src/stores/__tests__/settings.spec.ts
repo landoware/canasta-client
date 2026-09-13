@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useSettingsStore, DEFAULT_CARD_SCALE, MIN_CARD_SCALE, MAX_CARD_SCALE } from '../settings'
+import { SortRankAscending } from '@/utils/handSort'
 
 describe('settings store', () => {
   beforeEach(() => {
@@ -12,8 +13,13 @@ describe('settings store', () => {
     expect(settings.cardScale).toBe(DEFAULT_CARD_SCALE)
   })
 
-  it('bounds are 0.25 to 1.75', () => {
-    expect(MIN_CARD_SCALE).toBe(0.25)
+  it('defaults sortMethod to rank ascending', () => {
+    const settings = useSettingsStore()
+    expect(settings.sortMethod).toBe(SortRankAscending)
+  })
+
+  it('bounds are 0.5 to 1.75', () => {
+    expect(MIN_CARD_SCALE).toBe(0.5)
     expect(MAX_CARD_SCALE).toBe(1.75)
   })
 

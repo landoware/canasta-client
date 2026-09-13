@@ -4,10 +4,13 @@ import { createPinia, setActivePinia } from 'pinia'
 import GameView from '../GameView.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
 import DiscardPile from '@/components/board/DiscardPile.vue'
+import Button from '@/components/Button.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
+import { useSettingsStore } from '@/stores/settings'
 import type { StateMessage } from '@/types/protocol'
-import { PhasePlaying } from '@/types/canasta'
+import { PhasePlaying, Four, Eight } from '@/types/canasta'
+import { SortRankDescending } from '@/utils/handSort'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -104,5 +107,42 @@ describe('GameView', () => {
     await wrapper.findComponent(DiscardPile).find('button').trigger('click')
 
     expect(firstHandButton().attributes('data-selected')).toBe('false')
+  })
+
+  it('sorts the hand by the configured method when Sort is clicked', async () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        hand: {
+          1: { id: 1, suit: 0, rank: Eight },
+          2: { id: 2, suit: 0, rank: Four },
+        },
+      }),
+    )
+
+    const wrapper = mount(GameView)
+    expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([1, 2])
+
+    await wrapper.findComponent(Button).trigger('click')
+
+    expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([2, 1])
+  })
+
+  it('uses the sortMethod configured in settings, not always rank ascending', async () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        hand: {
+          1: { id: 1, suit: 0, rank: Four },
+          2: { id: 2, suit: 0, rank: Eight },
+        },
+      }),
+    )
+    useSettingsStore().sortMethod = SortRankDescending
+
+    const wrapper = mount(GameView)
+    await wrapper.findComponent(Button).trigger('click')
+
+    expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([2, 1])
   })
 })
