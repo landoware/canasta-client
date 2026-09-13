@@ -43,6 +43,7 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
     handNumber: 1,
     gameOver: false,
     canGoOut: false,
+    goneDown: false,
     ...overrides,
   }
 }
@@ -144,5 +145,52 @@ describe('GameView', () => {
     await wrapper.findComponent(Button).trigger('click')
 
     expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([2, 1])
+  })
+
+  it('creates a meld from 3 selected same-rank cards and clears the selection', async () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        hand: {
+          1: { id: 1, suit: 0, rank: Four },
+          2: { id: 2, suit: 1, rank: Four },
+          3: { id: 3, suit: 2, rank: Four },
+        },
+      }),
+    )
+
+    const wrapper = mount(GameView)
+    const handButtons = wrapper.findComponent(PlayerHand).findAll('button')
+    await handButtons[0]!.trigger('click')
+    await handButtons[1]!.trigger('click')
+    await handButtons[2]!.trigger('click')
+
+    const createTile = wrapper.find('button[aria-label="Create meld from selected cards"]')
+    expect(createTile.exists()).toBe(true)
+    await createTile.trigger('click')
+
+    expect(send).toHaveBeenCalledWith('new_meld', { cardIds: [1, 2, 3] })
+    expect(handButtons[0]!.attributes('data-selected')).toBe('false')
+  })
+
+  it('does not show the create-meld tile for an invalid selection', async () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        hand: {
+          1: { id: 1, suit: 0, rank: Four },
+          2: { id: 2, suit: 1, rank: Eight },
+        },
+      }),
+    )
+
+    const wrapper = mount(GameView)
+    const handButtons = wrapper.findComponent(PlayerHand).findAll('button')
+    await handButtons[0]!.trigger('click')
+    await handButtons[1]!.trigger('click')
+
+    expect(wrapper.find('button[aria-label="Create meld from selected cards"]').exists()).toBe(
+      false,
+    )
   })
 })

@@ -75,6 +75,43 @@ export const cardPointValue = (card: Card): number => {
   return card.rank === Three && isBlack(card) ? -value : value
 }
 
+// Mirrors internal/canasta/moves.go's Player.ValidateMeld — the server
+// remains authoritative, this is only used to decide when to show the
+// create-meld affordance client-side.
+export const isValidNewMeld = (cards: Card[]): boolean => {
+  if (cards.length < 3) return false
+  if (cards.some((c) => c.rank === Three)) return false
+
+  const nonWild = cards.filter((c) => !isWildCard(c))
+  if (nonWild.length === 0) return true // all-wild melds have no wildcard cap
+
+  const rank = nonWild[0]!.rank
+  if (!nonWild.every((c) => c.rank === rank)) return false
+
+  const wildCount = cards.length - nonWild.length
+  if (rank === Seven && wildCount > 0) return false
+  return wildCount <= 3
+}
+
+// Mirrors internal/canasta/canasta.go's meldRequirements — total staged
+// meld points needed to go down, keyed by hand number. The game only ever
+// runs hands 1-4 (see Game.EndHand); Infinity is a defensive fallback so
+// an unexpected hand number hides the go-down button rather than
+// wrongly showing it.
+const MELD_REQUIREMENTS: Partial<Record<number, number>> = { 1: 50, 2: 90, 3: 120, 4: 150 }
+
+// Mirrors internal/canasta/canasta.go's Meld.Score() — a plain sum of
+// every card's point value, no canasta bonuses (those only apply to
+// completed canastas, never to in-progress melds).
+export const meldsPointTotal = (melds: { cards: Card[] }[]): number =>
+  melds.reduce(
+    (sum, meld) => sum + meld.cards.reduce((cardSum, card) => cardSum + cardPointValue(card), 0),
+    0,
+  )
+
+export const meetsGoDownRequirement = (melds: { cards: Card[] }[], handNumber: number): boolean =>
+  meldsPointTotal(melds) >= (MELD_REQUIREMENTS[handNumber] ?? Infinity)
+
 export const formatCard = (card: Card): string => {
   const rankNames = ['4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', 'Joker', '3']
   const suitSymbols = ['♥', '♦', '♣', '♠']

@@ -103,6 +103,13 @@ export interface ClientState {
   hasFoot: boolean;
   players: OtherPlayerState[];
   ourScore: number /* int */;
+  /**
+   * GoneDown tells the client whether OurMelds is the team's official
+   * melds (true) or the requesting player's own not-yet-committed
+   * staging melds (false) — see NewMeld/GoDown in moves.go. There's no
+   * per-meld distinction: OurMelds is always entirely one or the other.
+   */
+  goneDown: boolean;
   ourMelds: Meld[];
   ourCanastas: Canasta[];
   ourRedThrees: Card[];

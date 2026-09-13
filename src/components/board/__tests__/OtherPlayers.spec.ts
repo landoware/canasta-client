@@ -41,6 +41,7 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
     handNumber: 1,
     gameOver: false,
     canGoOut: false,
+    goneDown: false,
     ...overrides,
   }
 }

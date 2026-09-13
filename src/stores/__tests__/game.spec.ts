@@ -33,6 +33,7 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
     handNumber: 1,
     gameOver: false,
     canGoOut: false,
+    goneDown: false,
     ...overrides,
   }
 }
@@ -111,6 +112,22 @@ describe('game store', () => {
     expect(store.myHand).toHaveLength(1)
     expect(store.myTeamScore).toBe(10)
     expect(store.opponentScore).toBe(5)
+  })
+
+  it('hasGoneDown reflects the server-sent goneDown flag', () => {
+    const store = useGameStore()
+
+    store.handleState(baseState({ goneDown: false }))
+    expect(store.hasGoneDown).toBe(false)
+
+    store.handleState(baseState({ goneDown: true }))
+    expect(store.hasGoneDown).toBe(true)
+  })
+
+  it('handNumber reflects the current hand', () => {
+    const store = useGameStore()
+    store.handleState(baseState({ handNumber: 3 }))
+    expect(store.handNumber).toBe(3)
   })
 
   it('handleState notifies when the hand number changes', () => {

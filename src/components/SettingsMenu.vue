@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { ref } from "vue";
-import { useSettingsStore, MIN_CARD_SCALE, MAX_CARD_SCALE } from "@/stores/settings";
+import {
+  useSettingsStore,
+  MIN_CARD_SCALE,
+  MAX_CARD_SCALE,
+  MeldsPositionBottom,
+  MeldsPositionTop,
+} from "@/stores/settings";
 import { SORT_METHOD_OPTIONS } from "@/utils/handSort";
 
 const settings = useSettingsStore();
@@ -35,6 +41,14 @@ const isOpen = ref(false);
           <option v-for="option in SORT_METHOD_OPTIONS" :key="option.value" :value="option.value" class="text-black">
             {{ option.label }}
           </option>
+        </select>
+      </label>
+
+      <label class="flex flex-col gap-2">
+        <span>In-progress melds position</span>
+        <select v-model="settings.meldsPosition" class="rounded-md p-2">
+          <option :value="MeldsPositionBottom" class="text-black">Bottom (near your hand)</option>
+          <option :value="MeldsPositionTop" class="text-black">Top (near partner's hand)</option>
         </select>
       </label>
     </div>

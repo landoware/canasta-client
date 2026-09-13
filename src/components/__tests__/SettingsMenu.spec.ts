@@ -2,7 +2,13 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import SettingsMenu from '../SettingsMenu.vue'
-import { useSettingsStore, MIN_CARD_SCALE, MAX_CARD_SCALE } from '@/stores/settings'
+import {
+  useSettingsStore,
+  MIN_CARD_SCALE,
+  MAX_CARD_SCALE,
+  MeldsPositionBottom,
+  MeldsPositionTop,
+} from '@/stores/settings'
 import { SORT_METHOD_OPTIONS, SortRankDescending } from '@/utils/handSort'
 
 describe('SettingsMenu', () => {
@@ -58,5 +64,17 @@ describe('SettingsMenu', () => {
     await wrapper.find('select').setValue(SortRankDescending)
 
     expect(settings.sortMethod).toBe(SortRankDescending)
+  })
+
+  it('defaults the melds-position dropdown to bottom and updates the setting', async () => {
+    const wrapper = mount(SettingsMenu)
+    const settings = useSettingsStore()
+    await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+    const meldsSelect = wrapper.findAll('select')[1]!
+    expect((meldsSelect.element as HTMLSelectElement).value).toBe(MeldsPositionBottom)
+
+    await meldsSelect.setValue(MeldsPositionTop)
+    expect(settings.meldsPosition).toBe(MeldsPositionTop)
   })
 })

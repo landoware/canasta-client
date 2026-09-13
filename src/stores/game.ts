@@ -95,6 +95,12 @@ function defineGameStore(instanceId: string) {
 
   const myTeamCanastas: ComputedRef<Canasta[]> = computed(() => gameState.value?.ourCanastas ?? [])
 
+  // Whether myTeamMelds are the team's official melds (true) or this
+  // player's own not-yet-committed staging melds (false) — see
+  // internal/canasta/presentation.go's ClientState.GoneDown. It's an
+  // all-or-nothing flag: myTeamMelds is never a mix of the two.
+  const hasGoneDown: ComputedRef<boolean> = computed(() => gameState.value?.goneDown ?? false)
+
   const canDraw: ComputedRef<boolean> = computed(
     () => isMyTurn.value && currentPhase.value === PhaseDrawing && !pendingMove.value,
   )
@@ -115,6 +121,8 @@ function defineGameStore(instanceId: string) {
   const deckCount: ComputedRef<number> = computed(() => gameState.value?.deckCount ?? 0)
 
   const discardCount: ComputedRef<number> = computed(() => gameState.value?.discardCount ?? 0)
+
+  const handNumber: ComputedRef<number> = computed(() => gameState.value?.handNumber ?? 1)
 
   // ============================================================================
   // ACTIONS - Lobby
@@ -307,12 +315,14 @@ function defineGameStore(instanceId: string) {
     opponentScore,
     myTeamMelds,
     myTeamCanastas,
+    hasGoneDown,
     canDraw,
     canPlay,
     canGoOut,
     discardTopCard,
     deckCount,
     discardCount,
+    handNumber,
 
     // Actions - Lobby
     createRoom,
