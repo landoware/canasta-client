@@ -21,4 +21,17 @@ describe('DiscardPile', () => {
     expect(wrapper.findComponent(PlayingCard).exists()).toBe(false)
     expect(wrapper.find('.border-dashed').exists()).toBe(true)
   })
+
+  it('emits click when enabled', async () => {
+    const wrapper = mount(DiscardPile, { props: { count: 1, disabled: false } })
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.emitted('click')).toHaveLength(1)
+  })
+
+  it('does not emit click when disabled', async () => {
+    const wrapper = mount(DiscardPile, { props: { count: 1, disabled: true } })
+    expect(wrapper.find('button').attributes('disabled')).toBeDefined()
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.emitted('click')).toBeUndefined()
+  })
 })

@@ -1,26 +1,20 @@
 <script setup lang="ts">
 // The player's own hand, fanned across the bottom of the screen. Selection
-// is purely local UI state for now — multiple cards can be toggled on/off
-// by clicking; nothing is sent to the server yet (that wiring, e.g. for
-// discard/meld, comes once those interactions have a home).
+// is a controlled prop, not local state: the move model is "select card(s),
+// then click where they go" (e.g. the discard pile), and the destination
+// (a sibling of this component) needs to see the same selection GameView
+// does, so GameView owns it and this component just requests toggles.
 import { ref, computed } from 'vue'
 import type { Card } from '@/types/canasta'
 import PlayingCard from './PlayingCard.vue'
 
-const props = defineProps<{ cards: Card[] }>()
+const props = defineProps<{ cards: Card[]; selectedIds: Set<number> }>()
+const emit = defineEmits<{ toggle: [id: number] }>()
 
-const selectedIds = ref<Set<number>>(new Set())
 const hoveredId = ref<number | null>(null)
 
 function isSelected(id: number): boolean {
-  return selectedIds.value.has(id)
-}
-
-function toggle(id: number): void {
-  const next = new Set(selectedIds.value)
-  if (next.has(id)) next.delete(id)
-  else next.add(id)
-  selectedIds.value = next
+  return props.selectedIds.has(id)
 }
 
 const CARD_SPACING_PX = 30
@@ -69,7 +63,7 @@ const cardLayouts = computed(() => {
         "
         :style="layout.style"
         :data-selected="isSelected(layout.card.id)"
-        @click="toggle(layout.card.id)"
+        @click="emit('toggle', layout.card.id)"
         @mouseenter="hoveredId = layout.card.id"
         @mouseleave="hoveredId = null"
       >

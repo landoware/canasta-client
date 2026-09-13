@@ -7,7 +7,7 @@ import DiscardPile from '../DiscardPile.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing } from '@/types/canasta'
+import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -64,7 +64,7 @@ describe('CenterPile', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ deckCount: 40, discardCount: 2 }))
 
-    const wrapper = mount(CenterPile, { props: { gameStore } })
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: null } })
 
     expect(wrapper.findComponent(DeckPile).props('count')).toBe(40)
     expect(wrapper.findComponent(DeckPile).props('disabled')).toBe(false)
@@ -78,7 +78,7 @@ describe('CenterPile', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ isYourTurn: false }))
 
-    const wrapper = mount(CenterPile, { props: { gameStore } })
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: null } })
 
     expect(wrapper.findComponent(DeckPile).props('disabled')).toBe(true)
   })
@@ -87,9 +87,40 @@ describe('CenterPile', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(CenterPile, { props: { gameStore } })
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: null } })
     wrapper.findComponent(DeckPile).vm.$emit('draw')
 
     expect(send).toHaveBeenCalledWith('draw_from_deck', {})
+  })
+
+  it('disables the discard pile when no card is selected', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhasePlaying }))
+
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: null } })
+
+    expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(true)
+  })
+
+  it('disables the discard pile when a card is selected but it is not this seat\'s turn to play', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhaseDrawing }))
+
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: 7 } })
+
+    expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(true)
+  })
+
+  it('discards the selected card through the real store action and emits discarded', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhasePlaying }))
+
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: 7 } })
+    expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(false)
+
+    wrapper.findComponent(DiscardPile).vm.$emit('click')
+
+    expect(send).toHaveBeenCalledWith('discard', { cardId: 7 })
+    expect(wrapper.emitted('discarded')).toHaveLength(1)
   })
 })
