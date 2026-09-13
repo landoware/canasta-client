@@ -24,11 +24,24 @@ import {
 import type { Card, Meld, Canasta } from '@/types/canasta'
 import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
 import { useWebSocketStore } from './websocket'
+import { MAIN_INSTANCE_ID } from './instanceId'
 
 const NAME_STORAGE_KEY = 'canasta_name'
 const ROOM_STORAGE_KEY = 'canasta_room'
 
-export const useGameStore = defineStore('game', () => {
+// gameStoreCache holds one store definition per instanceId — see
+// useGameStore below for why this needs to be a factory rather than a bare
+// defineStore(...) call.
+const gameStoreCache = new Map<string, ReturnType<typeof defineGameStore>>()
+
+function defineGameStore(instanceId: string) {
+  // Only the default (single-player) instance persists to localStorage —
+  // /demo's 4 concurrent instances can't share the one canasta_name/
+  // canasta_room key pair, and resuming a stale demo session on reload
+  // isn't useful anyway.
+  const persist = instanceId === MAIN_INSTANCE_ID
+
+  return defineStore(`game-${instanceId}`, () => {
   // ============================================================================
   // STATE
   // ============================================================================
@@ -36,8 +49,8 @@ export const useGameStore = defineStore('game', () => {
   // There's no server credential anymore (see internal/room.Room.Join) —
   // name + roomCode are only persisted so the join form can pre-fill and a
   // dropped connection can be resumed with the same identity.
-  const playerName: Ref<string | null> = ref(localStorage.getItem(NAME_STORAGE_KEY))
-  const roomCode: Ref<string | null> = ref(localStorage.getItem(ROOM_STORAGE_KEY))
+  const playerName: Ref<string | null> = ref(persist ? localStorage.getItem(NAME_STORAGE_KEY) : null)
+  const roomCode: Ref<string | null> = ref(persist ? localStorage.getItem(ROOM_STORAGE_KEY) : null)
   const mySeatIndex: Ref<number | null> = ref(null)
 
   const lobbySeats: Ref<LobbySeat[]> = ref([])
@@ -101,6 +114,8 @@ export const useGameStore = defineStore('game', () => {
 
   const deckCount: ComputedRef<number> = computed(() => gameState.value?.deckCount ?? 0)
 
+  const discardCount: ComputedRef<number> = computed(() => gameState.value?.discardCount ?? 0)
+
   // ============================================================================
   // ACTIONS - Lobby
   // ============================================================================
@@ -109,7 +124,7 @@ export const useGameStore = defineStore('game', () => {
   // Resolves once the server accepts the join (a `welcome` message
   // arrives); rejects if the connection is refused.
   const createRoom = async (name: string): Promise<string> => {
-    const ws = useWebSocketStore()
+    const ws = useWebSocketStore(instanceId)
     const code = await ws.createRoom()
     await joinRoom(code, name)
     return code
@@ -121,11 +136,11 @@ export const useGameStore = defineStore('game', () => {
   // the connection is refused (blank name, full room, unknown room code).
   const joinRoom = (code: string, name: string): Promise<void> => {
     playerName.value = name
-    localStorage.setItem(NAME_STORAGE_KEY, name)
+    if (persist) localStorage.setItem(NAME_STORAGE_KEY, name)
 
     return new Promise((resolve, reject) => {
       pendingJoin = { resolve, reject }
-      const ws = useWebSocketStore()
+      const ws = useWebSocketStore(instanceId)
       ws.connect(code, name)
     })
   }
@@ -184,7 +199,7 @@ export const useGameStore = defineStore('game', () => {
       return
     }
     pendingMove.value = true
-    const ws = useWebSocketStore()
+    const ws = useWebSocketStore(instanceId)
     ws.send(type, data)
   }
 
@@ -195,7 +210,7 @@ export const useGameStore = defineStore('game', () => {
   const handleWelcome = (payload: WelcomePayload): void => {
     mySeatIndex.value = payload.seatIndex
     roomCode.value = payload.roomCode
-    localStorage.setItem(ROOM_STORAGE_KEY, payload.roomCode)
+    if (persist) localStorage.setItem(ROOM_STORAGE_KEY, payload.roomCode)
 
     pendingJoin?.resolve()
     pendingJoin = null
@@ -266,7 +281,7 @@ export const useGameStore = defineStore('game', () => {
     lobbySeats.value = []
     gameState.value = null
 
-    localStorage.removeItem(ROOM_STORAGE_KEY)
+    if (persist) localStorage.removeItem(ROOM_STORAGE_KEY)
   }
 
   return {
@@ -297,6 +312,7 @@ export const useGameStore = defineStore('game', () => {
     canGoOut,
     discardTopCard,
     deckCount,
+    discardCount,
 
     // Actions - Lobby
     createRoom,
@@ -327,4 +343,18 @@ export const useGameStore = defineStore('game', () => {
     addNotification,
     clearGameState,
   }
-})
+  })
+}
+
+// useGameStore returns the game store for instanceId, creating its
+// definition on first use. Real single-player play always uses the default
+// (MAIN_INSTANCE_ID) instance; the /demo page creates one instance per seat
+// so 4 concurrent seats don't share state.
+export function useGameStore(instanceId: string = MAIN_INSTANCE_ID) {
+  if (!gameStoreCache.has(instanceId)) {
+    gameStoreCache.set(instanceId, defineGameStore(instanceId))
+  }
+  return gameStoreCache.get(instanceId)!()
+}
+
+export type GameStore = ReturnType<typeof useGameStore>

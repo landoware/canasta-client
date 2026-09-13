@@ -22,6 +22,7 @@ import type {
 import type { MessageType } from '@/types/protocol'
 import { useGameStore } from './game'
 import { useRateLimiter } from '@/composables/useRateLimiter'
+import { MAIN_INSTANCE_ID } from './instanceId'
 
 const MAX_RECONNECT_ATTEMPTS = 3
 const RECONNECT_DELAYS = [3000, 6000, 12000] // Exponential backoff: 3s, 6s, 12s
@@ -41,7 +42,13 @@ const wsUrlFor = (roomCode: string, name: string): string => {
   return `${wsBase}/rooms/${encodeURIComponent(roomCode)}/ws?name=${encodeURIComponent(name)}`
 }
 
-export const useWebSocketStore = defineStore('websocket', () => {
+// wsStoreCache holds one store definition per instanceId — see
+// useWebSocketStore below for why this needs to be a factory rather than a
+// bare defineStore(...) call.
+const wsStoreCache = new Map<string, ReturnType<typeof defineWebSocketStore>>()
+
+function defineWebSocketStore(instanceId: string) {
+  return defineStore(`websocket-${instanceId}`, () => {
   // ============================================================================
   // STATE
   // ============================================================================
@@ -108,7 +115,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
       console.log('WebSocket disconnected')
       connected.value = false
 
-      const gameStore = useGameStore()
+      const gameStore = useGameStore(instanceId)
 
       if (!didOpen) {
         // The server rejected the join before the handshake ever
@@ -144,7 +151,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
     // Check rate limiter
     if (!rateLimiter.canSend()) {
       console.error('Rate limit exceeded. Please slow down.')
-      const gameStore = useGameStore()
+      const gameStore = useGameStore(instanceId)
       gameStore.addError('Sending messages too fast. Please slow down.')
       return
     }
@@ -163,13 +170,13 @@ export const useWebSocketStore = defineStore('websocket', () => {
       rateLimiter.recordMessage()
     } else {
       console.error('WebSocket not connected. Cannot send:', type)
-      const gameStore = useGameStore()
+      const gameStore = useGameStore(instanceId)
       gameStore.addError('Not connected to server')
     }
   }
 
   const handleMessage = (message: ServerMessage): void => {
-    const gameStore = useGameStore()
+    const gameStore = useGameStore(instanceId)
 
     switch (message.type) {
       case TypeWelcome:
@@ -212,4 +219,16 @@ export const useWebSocketStore = defineStore('websocket', () => {
     send,
     disconnect,
   }
-})
+  })
+}
+
+// useWebSocketStore returns the websocket store for instanceId, creating its
+// definition on first use. Real single-player play always uses the default
+// (MAIN_INSTANCE_ID) instance; the /demo page creates one instance per seat
+// so 4 concurrent connections don't share state.
+export function useWebSocketStore(instanceId: string = MAIN_INSTANCE_ID) {
+  if (!wsStoreCache.has(instanceId)) {
+    wsStoreCache.set(instanceId, defineWebSocketStore(instanceId))
+  }
+  return wsStoreCache.get(instanceId)!()
+}

@@ -49,3 +49,12 @@
   --color-card-red: #a23d31;
   --color-card-white: #ffffff;
 }
+
+:root {
+  /* Single source of truth for card width, shared by every card-rendering
+     component (deck, discard, hand, ...) so they all scale together.
+     --card-scale is bound reactively from the settings store (see
+     App.vue) — the ,1 fallback keeps components sized correctly when
+     mounted outside that tree, e.g. in isolated component tests. */
+  --card-base-width: clamp(6rem, 12vw, 10rem);
+}

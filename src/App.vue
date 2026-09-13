@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import { useGameStore } from '@/stores/game'
+import { useSettingsStore } from '@/stores/settings'
+import SettingsMenu from '@/components/SettingsMenu.vue'
 
 // There's no app-wide connection to open here: a websocket now always
 // targets one specific room (/rooms/{code}/ws?name=...), so connecting
 // happens when the player actually creates or joins one (see HomeView).
 const gameStore = useGameStore()
+
+// --card-scale is bound here, at the root, so it cascades to every
+// card-rendering component (deck, discard, hand, ...) without each one
+// needing to know about the settings store — see main.css's
+// --card-base-width for the other half of the calc().
+const settings = useSettingsStore()
 </script>
 
 <template>
-  <div id="app" class="h-dvh bg-card-table text-white">
+  <div
+    id="app"
+    class="h-dvh bg-card-table text-white"
+    :style="{ '--card-scale': settings.cardScale }"
+  >
     <RouterView />
+    <SettingsMenu />
 
     <!-- Global error/notification toasts -->
     <div class="toasts font-rs-bold">
