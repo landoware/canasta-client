@@ -5,6 +5,7 @@ import { useSettingsStore } from '@/stores/settings'
 import { useSortableHand } from '@/composables/useSortableHand'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
+import OtherPlayers from '@/components/board/OtherPlayers.vue'
 import Button from '@/components/Button.vue'
 
 // instanceId defaults to the main (single-player) store instance when
@@ -59,6 +60,7 @@ function clearSelection(): void {
     :selected-card-id="singleSelectedCardId"
     @discarded="clearSelection"
   />
+  <OtherPlayers :game-store="gameStore" />
   <PlayerHand :cards="handCards" :selected-ids="selectedCardIds" @toggle="toggleCardSelection" />
   <div class="fixed bottom-8 right-8">
     <Button label="Sort" @click="onSortClick" />
