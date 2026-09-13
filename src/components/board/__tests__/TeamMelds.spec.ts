@@ -252,4 +252,110 @@ describe('TeamMelds', () => {
 
     expect(send).toHaveBeenCalledWith('go_down', {})
   })
+
+  it('marks a staging meld clickable when the selection is valid for it', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhasePlaying,
+        goneDown: false,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) }, // a Four, matches the staging meld
+    })
+    const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+    expect(meldsRow.props('clickableGroupIds')).toEqual(new Set([1]))
+  })
+
+  it('marks an official meld clickable the same way once the team has gone down', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhasePlaying,
+        goneDown: true,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+    expect(meldsRow.props('clickableGroupIds')).toEqual(new Set([1]))
+  })
+
+  it('hides clickability when the selection does not match the meld rank', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhasePlaying,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected
+    })
+    const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+    expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
+  })
+
+  it('hides clickability when it is not this seat\'s turn to play', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhaseDrawing,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+    expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
+  })
+
+  it('adds to the meld through the real store action and emits melded when the tile is selected', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhasePlaying,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
+
+    expect(send).toHaveBeenCalledWith('add_to_meld', { cardIds: [101], meldId: 1 })
+    expect(wrapper.emitted('melded')).toHaveLength(1)
+  })
+
+  it('ignores select-group for a meld id that is not actually clickable', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhasePlaying,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected, so meld 1 isn't clickable
+    })
+    wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
+
+    expect(send).not.toHaveBeenCalled()
+    expect(wrapper.emitted('melded')).toBeUndefined()
+  })
 })

@@ -104,4 +104,41 @@ describe('MeldRow', () => {
     await tile.trigger('click')
     expect(wrapper.emitted('create')).toHaveLength(1)
   })
+
+  it('disables group tiles by default', () => {
+    const groups = [{ id: 1, cards: [{ id: 1, suit: Hearts, rank: Four }] }]
+    const wrapper = mount(MeldRow, { props: { groups } })
+
+    const tile = wrapper.findAll('button').find((b) => !b.attributes('aria-label'))
+    expect(tile!.attributes('disabled')).toBeDefined()
+  })
+
+  it('enables and highlights only the tiles whose id is in clickableGroupIds', () => {
+    const groups = [
+      { id: 1, cards: [{ id: 1, suit: Hearts, rank: Four }] },
+      { id: 2, cards: [{ id: 2, suit: Hearts, rank: Five }] },
+    ]
+    const wrapper = mount(MeldRow, { props: { groups, clickableGroupIds: new Set([2]) } })
+    const tiles = wrapper.findAll('button').filter((b) => !b.attributes('aria-label'))
+
+    expect(tiles[0]!.attributes('disabled')).toBeDefined()
+    expect(tiles[1]!.attributes('disabled')).toBeUndefined()
+    expect(tiles[1]!.classes().join(' ')).toContain('drop-shadow')
+  })
+
+  it('emits select-group with the id when a clickable tile is clicked', async () => {
+    const groups = [{ id: 1, cards: [{ id: 1, suit: Hearts, rank: Four }] }]
+    const wrapper = mount(MeldRow, { props: { groups, clickableGroupIds: new Set([1]) } })
+
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.emitted('select-group')).toEqual([[1]])
+  })
+
+  it('does not emit select-group when a disabled tile is clicked', async () => {
+    const groups = [{ id: 1, cards: [{ id: 1, suit: Hearts, rank: Four }] }]
+    const wrapper = mount(MeldRow, { props: { groups } })
+
+    await wrapper.find('button').trigger('click')
+    expect(wrapper.emitted('select-group')).toBeUndefined()
+  })
 })

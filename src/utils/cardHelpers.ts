@@ -1,4 +1,4 @@
-import type { Card } from '@/types/canasta'
+import type { Card, Rank } from '@/types/canasta'
 import {
   Hearts,
   Diamonds,
@@ -91,6 +91,32 @@ export const isValidNewMeld = (cards: Card[]): boolean => {
   const wildCount = cards.length - nonWild.length
   if (rank === Seven && wildCount > 0) return false
   return wildCount <= 3
+}
+
+// Mirrors internal/canasta/moves.go's Game.AddToMeld exactly, including
+// checking wildcard count cumulatively across the whole batch being added
+// (the server increments meld.WildCount once per wild card in the loop
+// and bails as soon as it exceeds 3). Works the same whether the meld is
+// one of the player's staging melds or one of the team's official melds —
+// the server now looks in both (see TeamMelds.vue).
+export const isValidAddToMeld = (
+  meld: { rank: Rank; wildCount: number },
+  cards: Card[],
+): boolean => {
+  if (cards.length === 0) return false
+
+  let wildCount = meld.wildCount
+  for (const card of cards) {
+    const wild = isWildCard(card)
+    if (card.rank !== meld.rank && !wild) return false
+    if (card.rank === Three) return false
+    if (meld.rank === Seven && wild) return false
+    if (wild) {
+      wildCount++
+      if (wildCount > 3) return false
+    }
+  }
+  return true
 }
 
 // Mirrors internal/canasta/canasta.go's meldRequirements — total staged

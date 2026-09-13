@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   cardPointValue,
   isValidNewMeld,
+  isValidAddToMeld,
   meldsPointTotal,
   meetsGoDownRequirement,
 } from '../cardHelpers'
@@ -123,6 +124,72 @@ describe('isValidNewMeld', () => {
       { id: 5, suit: Hearts, rank: Two },
     ]
     expect(isValidNewMeld(cards)).toBe(true)
+  })
+})
+
+describe('isValidAddToMeld', () => {
+  it('accepts a card matching the meld rank', () => {
+    const meld = { rank: Four, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Four }])).toBe(true)
+  })
+
+  it('rejects a card of a different, non-wild rank', () => {
+    const meld = { rank: Four, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Eight }])).toBe(false)
+  })
+
+  it('accepts a wildcard regardless of the meld rank', () => {
+    const meld = { rank: Four, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Two }])).toBe(true)
+  })
+
+  it('rejects a three even if the meld rank somehow matched', () => {
+    const meld = { rank: Three, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Three }])).toBe(false)
+  })
+
+  it('rejects any wildcard added to a sevens meld', () => {
+    const meld = { rank: Seven, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Two }])).toBe(false)
+  })
+
+  it('accepts a seven added to a sevens meld', () => {
+    const meld = { rank: Seven, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Seven }])).toBe(true)
+  })
+
+  it('rejects a wildcard that would push the meld past 3 wilds total', () => {
+    const meld = { rank: Four, wildCount: 3 }
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Two }])).toBe(false)
+  })
+
+  it('allows the 3rd wildcard but not a 4th, counted cumulatively across the batch', () => {
+    const meld = { rank: Four, wildCount: 1 }
+    const twoWilds = [
+      { id: 1, suit: Hearts, rank: Two },
+      { id: 2, suit: Diamonds, rank: Joker },
+    ]
+    expect(isValidAddToMeld(meld, twoWilds)).toBe(true) // 1 + 2 = 3, ok
+
+    const threeWilds = [
+      { id: 1, suit: Hearts, rank: Two },
+      { id: 2, suit: Diamonds, rank: Joker },
+      { id: 3, suit: Clubs, rank: Two },
+    ]
+    expect(isValidAddToMeld(meld, threeWilds)).toBe(false) // 1 + 3 = 4, over cap
+  })
+
+  it('rejects an empty selection', () => {
+    const meld = { rank: Four, wildCount: 0 }
+    expect(isValidAddToMeld(meld, [])).toBe(false)
+  })
+
+  it('an all-wild meld only accepts more wildcards, never a real rank, and stays capped at 3', () => {
+    // The server's AddToMeld (unlike NewMeld) enforces the 3-wildcard cap
+    // unconditionally, with no all-wild exception.
+    const meld = { rank: 14, wildCount: 2 } // Wild
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Two }])).toBe(true) // 2 + 1 = 3, ok
+    expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Four }])).toBe(false)
   })
 })
 

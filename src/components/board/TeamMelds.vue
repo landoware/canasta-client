@@ -9,7 +9,7 @@
 import { computed } from 'vue'
 import type { GameStore } from '@/stores/game'
 import { useSettingsStore, MeldsPositionBottom } from '@/stores/settings'
-import { isValidNewMeld, meetsGoDownRequirement } from '@/utils/cardHelpers'
+import { isValidNewMeld, isValidAddToMeld, meetsGoDownRequirement } from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
 import Button from '@/components/Button.vue'
 
@@ -38,6 +38,24 @@ function onCreateMeld(): void {
   emit('melded')
 }
 
+// Add-to-meld works against whichever list myTeamMelds currently is —
+// staging melds pre-go-down, the team's official melds after (see
+// AddToMeld in moves.go, which now checks both). myTeamMelds is always
+// entirely one or the other, so no extra gating is needed here.
+const addableMeldIds = computed(() => {
+  if (!props.gameStore.canPlay) return new Set<number>()
+  const ids = props.gameStore.myTeamMelds
+    .filter((meld) => isValidAddToMeld(meld, selectedCards.value))
+    .map((meld) => meld.id)
+  return new Set(ids)
+})
+
+function onSelectMeld(meldId: number): void {
+  if (!addableMeldIds.value.has(meldId)) return
+  props.gameStore.addToMeld([...props.selectedCardIds], meldId)
+  emit('melded')
+}
+
 // Go down is only ever about the staged melds already on the table (no
 // card selection involved), so it just needs canPlay + the point
 // threshold for the current hand — see cardHelpers.meetsGoDownRequirement.
@@ -63,7 +81,9 @@ function onGoDown(): void {
       :groups="gameStore.myTeamMelds"
       :show-create-affordance="canCreateMeld"
       :dimmed="!gameStore.hasGoneDown"
+      :clickable-group-ids="addableMeldIds"
       @create="onCreateMeld"
+      @select-group="onSelectMeld"
     />
     <Button v-if="canGoDown" label="Go down" class="pointer-events-auto" @click="onGoDown" />
   </div>
