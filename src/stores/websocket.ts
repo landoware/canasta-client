@@ -28,7 +28,7 @@ const MAX_RECONNECT_ATTEMPTS = 3
 const RECONNECT_DELAYS = [3000, 6000, 12000] // Exponential backoff: 3s, 6s, 12s
 
 // httpBase returns the server's HTTP(S) origin, e.g.
-// "https://landanfagan.com/canasta". Falls back to the Go server's local
+// "https://canasta-api.landanfagan.com". Falls back to the Go server's local
 // dev default (see internal/server/server.go's NewHTTPServer) so `bun dev`
 // works against `go run ./cmd/api` with no env setup; staging/production
 // set VITE_SERVER_URL at build time (see the docker-publish workflows).
