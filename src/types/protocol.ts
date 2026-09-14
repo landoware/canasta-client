@@ -126,6 +126,13 @@ export const TypePlayRedThree: MessageType = "play_red_three";
  */
 export const TypeGrantPermissionToGoOut: MessageType = "grant_permission_to_go_out";
 /**
+ * Client -> server message types. One per internal/canasta mutator, plus
+ * the permission-to-go-out handshake. Identity (name) is established at
+ * connection time (see internal/room.Room.Join), not via an in-band
+ * message.
+ */
+export const TypeAskToGoOut: MessageType = "ask_to_go_out";
+/**
  * Server -> client message types.
  */
 export const TypeWelcome: MessageType = "welcome";
@@ -149,6 +156,10 @@ export const TypePlayerReconnected: MessageType = "player_reconnected";
  * Server -> client message types.
  */
 export const TypePlayerStatus: MessageType = "player_status";
+/**
+ * Server -> client message types.
+ */
+export const TypeGoOutRequested: MessageType = "go_out_requested";
 /**
  * Server -> client message types.
  */
@@ -200,6 +211,14 @@ export interface DiscardPayload {
 export interface PlayRedThreePayload {
   cardIds: number /* int */[];
   fromFoot: boolean;
+}
+/**
+ * GoOutRequestedPayload notifies exactly one seat — the asker's
+ * partner — that their partner wants to go out. See applyAskToGoOut in
+ * internal/room/dispatch.go.
+ */
+export interface GoOutRequestedPayload {
+  askerName: string;
 }
 /**
  * WelcomePayload is sent immediately after a successful join/reconnect.

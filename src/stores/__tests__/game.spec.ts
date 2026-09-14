@@ -2,8 +2,13 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
-import type { StateMessage, PlayersLobbyPayload, PlayerStatusPayload } from '@/types/protocol'
-import { PhaseDrawing } from '@/types/canasta'
+import type {
+  StateMessage,
+  PlayersLobbyPayload,
+  PlayerStatusPayload,
+  GoOutRequestedPayload,
+} from '@/types/protocol'
+import { PhaseDrawing, Four, Five, Seven, Wild } from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -126,6 +131,57 @@ describe('game store', () => {
     expect(store.hasGoneDown).toBe(true)
   })
 
+  it('canAskToGoOut is true only once gone down, not yet granted, with all four required canastas', () => {
+    const store = useGameStore()
+    const natural = { id: 1, rank: Four, cards: [], count: 7, natural: true }
+    const unnatural = { id: 2, rank: Five, cards: [], count: 7, natural: false }
+    const sevens = { id: 3, rank: Seven, cards: [], count: 7, natural: true }
+    const wildcards = { id: 4, rank: Wild, cards: [], count: 7, natural: false }
+    const allFour = [natural, unnatural, sevens, wildcards]
+
+    store.handleState(baseState({ goneDown: false, ourCanastas: allFour }))
+    expect(store.canAskToGoOut).toBe(false) // not gone down
+
+    store.handleState(baseState({ goneDown: true, ourCanastas: [natural, unnatural, sevens] }))
+    expect(store.canAskToGoOut).toBe(false) // missing the wildcards canasta
+
+    store.handleState(baseState({ goneDown: true, ourCanastas: allFour, canGoOut: true }))
+    expect(store.canAskToGoOut).toBe(false) // already granted
+
+    store.handleState(baseState({ goneDown: true, ourCanastas: allFour, canGoOut: false }))
+    expect(store.canAskToGoOut).toBe(true)
+  })
+
+  it('handleGoOutRequested sets goOutRequest with the asker\'s name', () => {
+    const store = useGameStore()
+    expect(store.goOutRequest).toBeNull()
+
+    const payload: GoOutRequestedPayload = { askerName: 'Bob' }
+    store.handleGoOutRequested(payload)
+
+    expect(store.goOutRequest).toEqual({ askerName: 'Bob' })
+  })
+
+  it('respondToGoOutRequest(true) grants permission and clears the request', () => {
+    const store = useGameStore()
+    store.handleGoOutRequested({ askerName: 'Bob' })
+
+    store.respondToGoOutRequest(true)
+
+    expect(send).toHaveBeenCalledWith('grant_permission_to_go_out', {})
+    expect(store.goOutRequest).toBeNull()
+  })
+
+  it('respondToGoOutRequest(false) just clears the request, with no server call', () => {
+    const store = useGameStore()
+    store.handleGoOutRequested({ askerName: 'Bob' })
+
+    store.respondToGoOutRequest(false)
+
+    expect(send).not.toHaveBeenCalled()
+    expect(store.goOutRequest).toBeNull()
+  })
+
   it('myHasFoot reflects the server-sent hasFoot flag', () => {
     const store = useGameStore()
 
@@ -231,6 +287,7 @@ describe('game store', () => {
       'grant_permission_to_go_out',
       {},
     ],
+    ['askToGoOut', () => useGameStore().askToGoOut(), 'ask_to_go_out', {}],
   ])('%s sends the matching typed payload', (_name, act, expectedType, expectedData) => {
     act()
     expect(send).toHaveBeenCalledWith(expectedType, expectedData)

@@ -9,6 +9,7 @@ import {
   TypePlayerDisconnected,
   TypePlayerReconnected,
   TypePlayerStatus,
+  TypeGoOutRequested,
   TypeError,
 } from '@/types/protocol'
 import type {
@@ -16,6 +17,7 @@ import type {
   StateMessage,
   PlayersLobbyPayload,
   PlayerStatusPayload,
+  GoOutRequestedPayload,
   ErrorPayload,
   CreateRoomResponse,
 } from '@/types/protocol'
@@ -192,6 +194,9 @@ function defineWebSocketStore(instanceId: string) {
       case TypePlayerReconnected:
       case TypePlayerStatus:
         gameStore.handlePlayerStatus(message.data as PlayerStatusPayload)
+        break
+      case TypeGoOutRequested:
+        gameStore.handleGoOutRequested(message.data as GoOutRequestedPayload)
         break
       case TypeError:
         gameStore.handleServerError(message.data as ErrorPayload)

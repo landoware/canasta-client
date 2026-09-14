@@ -10,6 +10,7 @@ import OtherPlayers from '@/components/board/OtherPlayers.vue'
 import OpponentMelds from '@/components/board/OpponentMelds.vue'
 import TeamMelds from '@/components/board/TeamMelds.vue'
 import MyFoot from '@/components/board/MyFoot.vue'
+import GoOutRequestDialog from '@/components/board/GoOutRequestDialog.vue'
 import Button from '@/components/Button.vue'
 
 // instanceId defaults to the main (single-player) store instance when
@@ -97,6 +98,7 @@ function clearSelection(): void {
     @reorder="moveCard"
   />
   <MyFoot :game-store="gameStore" />
+  <GoOutRequestDialog :game-store="gameStore" />
   <div class="fixed bottom-4" :style="{ left: sortButtonLeftOffset }">
     <Button label="Sort" @click="onSortClick" />
   </div>

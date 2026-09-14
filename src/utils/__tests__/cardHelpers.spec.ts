@@ -9,6 +9,7 @@ import {
   isValidPileMatch,
   meldsPointTotal,
   meetsGoDownRequirement,
+  meetsGoOutRequirements,
 } from '../cardHelpers'
 import {
   Hearts,
@@ -16,12 +17,14 @@ import {
   Clubs,
   Spades,
   Four,
+  Five,
   Seven,
   Eight,
   Ace,
   Two,
   Joker,
   Three,
+  Wild,
 } from '@/types/canasta'
 
 describe('cardPointValue', () => {
@@ -423,5 +426,41 @@ describe('meetsGoDownRequirement', () => {
       { cards: Array.from({ length: 9 }, (_, i) => ({ id: i, suit: Hearts, rank: Four })) },
     ]
     expect(meetsGoDownRequirement(fortyFive, 1)).toBe(false)
+  })
+})
+
+describe('meetsGoOutRequirements', () => {
+  const natural = { rank: Four, natural: true }
+  const unnatural = { rank: Five, natural: false }
+  const sevens = { rank: Seven, natural: true }
+  const wildcards = { rank: Wild, natural: false }
+
+  it('is true once all four required canasta types are present', () => {
+    expect(meetsGoOutRequirements([natural, unnatural, sevens, wildcards])).toBe(true)
+  })
+
+  it('is false with zero canastas', () => {
+    expect(meetsGoOutRequirements([])).toBe(false)
+  })
+
+  it('is false missing the natural canasta', () => {
+    expect(meetsGoOutRequirements([unnatural, sevens, wildcards])).toBe(false)
+  })
+
+  it('is false missing the unnatural canasta', () => {
+    expect(meetsGoOutRequirements([natural, sevens, wildcards])).toBe(false)
+  })
+
+  it('is false missing the sevens canasta', () => {
+    expect(meetsGoOutRequirements([natural, unnatural, wildcards])).toBe(false)
+  })
+
+  it('is false missing the wildcards canasta', () => {
+    expect(meetsGoOutRequirements([natural, unnatural, sevens])).toBe(false)
+  })
+
+  it('does not let a sevens canasta double as the natural requirement', () => {
+    // Two sevens canastas instead of one natural + one sevens.
+    expect(meetsGoOutRequirements([sevens, sevens, unnatural, wildcards])).toBe(false)
   })
 })

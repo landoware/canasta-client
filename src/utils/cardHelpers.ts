@@ -196,6 +196,27 @@ export const meldsPointTotal = (melds: { cards: Card[] }[]): number =>
 export const meetsGoDownRequirement = (melds: { cards: Card[] }[], handNumber: number): boolean =>
   meldsPointTotal(melds) >= (MELD_REQUIREMENTS[handNumber] ?? Infinity)
 
+// Mirrors internal/canasta/canasta.go's Team.MeetsGoOutRequirements
+// exactly (see also Canasta.Score's identical four-way partition): one
+// natural, one unnatural, one sevens, and one wildcards canasta, treated
+// as strictly distinct buckets — a sevens or wildcards canasta doesn't
+// also satisfy the generic natural/unnatural requirement.
+export const meetsGoOutRequirements = (canastas: { rank: Rank; natural: boolean }[]): boolean => {
+  let hasNatural = false
+  let hasUnnatural = false
+  let hasSevens = false
+  let hasWildcards = false
+
+  for (const c of canastas) {
+    if (c.rank === Wild) hasWildcards = true
+    else if (c.rank === Seven) hasSevens = true
+    else if (c.natural) hasNatural = true
+    else hasUnnatural = true
+  }
+
+  return hasNatural && hasUnnatural && hasSevens && hasWildcards
+}
+
 export const formatCard = (card: Card): string => {
   const rankNames = ['4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', 'Joker', '3']
   const suitSymbols = ['♥', '♦', '♣', '♠']

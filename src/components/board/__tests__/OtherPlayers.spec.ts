@@ -3,10 +3,11 @@ import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import OtherPlayers from '../OtherPlayers.vue'
 import OtherPlayerHand from '../OtherPlayerHand.vue'
+import Button from '@/components/Button.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing } from '@/types/canasta'
+import { PhaseDrawing, Four, Five, Seven, Wild } from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -49,8 +50,11 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
 }
 
 describe('OtherPlayers', () => {
+  let send: ReturnType<typeof vi.fn>
+
   beforeEach(() => {
     setActivePinia(createPinia())
+    send = vi.fn()
     vi.mocked(useWebSocketStore).mockReturnValue({
       ws: null,
       connected: false,
@@ -58,7 +62,7 @@ describe('OtherPlayers', () => {
       reconnectAttempts: 0,
       createRoom: vi.fn(),
       connect: vi.fn(),
-      send: vi.fn(),
+      send,
       disconnect: vi.fn(),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
@@ -163,5 +167,58 @@ describe('OtherPlayers', () => {
     right!.vm.$emit('select')
 
     expect(wrapper.emitted('select-seat')).toEqual([[2], [1], [3]])
+  })
+
+  describe('ask to go out', () => {
+    const allFourCanastas = [
+      { id: 1, rank: Four, cards: [], count: 7, natural: true },
+      { id: 2, rank: Five, cards: [], count: 7, natural: false },
+      { id: 3, rank: Seven, cards: [], count: 7, natural: true },
+      { id: 4, rank: Wild, cards: [], count: 7, natural: false },
+    ]
+
+    it('hides the button by default (no canastas)', () => {
+      const gameStore = useGameStore()
+      gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+      gameStore.handleState(baseState())
+
+      const wrapper = mount(OtherPlayers, { props: { gameStore } })
+
+      expect(wrapper.findComponent(Button).exists()).toBe(false)
+    })
+
+    it('shows the button once the team is eligible', () => {
+      const gameStore = useGameStore()
+      gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+      gameStore.handleState(baseState({ goneDown: true, ourCanastas: allFourCanastas }))
+
+      const wrapper = mount(OtherPlayers, { props: { gameStore } })
+
+      expect(wrapper.findComponent(Button).exists()).toBe(true)
+      expect(wrapper.findComponent(Button).props('label')).toBe('Ask to go out')
+    })
+
+    it('hides the button once permission has already been granted', () => {
+      const gameStore = useGameStore()
+      gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+      gameStore.handleState(
+        baseState({ goneDown: true, ourCanastas: allFourCanastas, canGoOut: true }),
+      )
+
+      const wrapper = mount(OtherPlayers, { props: { gameStore } })
+
+      expect(wrapper.findComponent(Button).exists()).toBe(false)
+    })
+
+    it('sends ask_to_go_out through the real store action when clicked', async () => {
+      const gameStore = useGameStore()
+      gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+      gameStore.handleState(baseState({ goneDown: true, ourCanastas: allFourCanastas }))
+
+      const wrapper = mount(OtherPlayers, { props: { gameStore } })
+      await wrapper.findComponent(Button).trigger('click')
+
+      expect(send).toHaveBeenCalledWith('ask_to_go_out', {})
+    })
   })
 })

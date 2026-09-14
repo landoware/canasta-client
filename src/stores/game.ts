@@ -7,6 +7,7 @@ import type {
   PlayersLobbyPayload,
   LobbySeat,
   PlayerStatusPayload,
+  GoOutRequestedPayload,
   ErrorPayload,
 } from '@/types/protocol'
 import {
@@ -20,9 +21,11 @@ import {
   TypePickUpFoot,
   TypePlayRedThree,
   TypeGrantPermissionToGoOut,
+  TypeAskToGoOut,
 } from '@/types/protocol'
 import type { Card, Meld, Canasta } from '@/types/canasta'
 import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
+import { meetsGoOutRequirements } from '@/utils/cardHelpers'
 import { useWebSocketStore } from './websocket'
 import { MAIN_INSTANCE_ID } from './instanceId'
 
@@ -60,6 +63,11 @@ function defineGameStore(instanceId: string) {
   const notifications: Ref<string[]> = ref([])
 
   const pendingMove: Ref<boolean> = ref(false)
+
+  // Set when this seat's partner asks to go out (see handleGoOutRequested)
+  // — GoOutRequestDialog.vue renders its Yes/No prompt whenever this is
+  // non-null, and respondToGoOutRequest clears it either way.
+  const goOutRequest: Ref<{ askerName: string } | null> = ref(null)
 
   let pendingJoin: { resolve: () => void; reject: (message: string) => void } | null = null
 
@@ -133,9 +141,18 @@ function defineGameStore(instanceId: string) {
   )
 
   // Whether MY team currently has permission to go out — granted by my
-  // partner via grantPermissionToGoOut(), not a formal request/response
-  // (the server has no "request" notification; see internal/protocol).
+  // partner via grantPermissionToGoOut(), typically after an
+  // askToGoOut()/goOutRequest round trip (see below), though a partner
+  // can grant it unprompted too.
   const canGoOut: ComputedRef<boolean> = computed(() => gameState.value?.canGoOut ?? false)
+
+  // Whether it's worth showing the "Ask to go out" affordance for MY
+  // team: gone down, not already granted, and holding all four required
+  // canasta types — see Team.MeetsGoOutRequirements in canasta.go, which
+  // askToGoOut's server-side handler re-validates authoritatively.
+  const canAskToGoOut: ComputedRef<boolean> = computed(
+    () => hasGoneDown.value && !canGoOut.value && meetsGoOutRequirements(myTeamCanastas.value),
+  )
 
   const discardTopCard: ComputedRef<Card | undefined> = computed(
     () => gameState.value?.discardTopCard,
@@ -217,11 +234,29 @@ function defineGameStore(instanceId: string) {
   }
 
   // grantPermissionToGoOut lets my partner authorize me to go out. Sent by
-  // the partner, not the current player — there's no formal "request"
-  // round-trip; the partner decides based on the visible board (or being
-  // asked out loud).
+  // the partner, not the current player — typically in response to a
+  // goOutRequest (see below), but nothing stops a partner from granting
+  // it unprompted based on the visible board.
   const grantPermissionToGoOut = (): void => {
     sendMove(TypeGrantPermissionToGoOut, {})
+  }
+
+  // askToGoOut notifies my partner (via the server's targeted
+  // go_out_requested message — see handleGoOutRequested) that I'd like
+  // to go out. Not turn-scoped: see canAskToGoOut above and
+  // applyAskToGoOut in dispatch.go, which allows this from either seat
+  // on an eligible team at any time.
+  const askToGoOut = (): void => {
+    sendMove(TypeAskToGoOut, {})
+  }
+
+  // respondToGoOutRequest answers an incoming goOutRequest. A "yes"
+  // sends the real grant; a "no" is purely local — there's no server
+  // round trip for a denial, so the asker's button just stays available
+  // to ask again.
+  const respondToGoOutRequest = (allow: boolean): void => {
+    if (allow) grantPermissionToGoOut()
+    goOutRequest.value = null
   }
 
   const sendMove = <T>(type: string, data: T): void => {
@@ -269,6 +304,10 @@ function defineGameStore(instanceId: string) {
   const handlePlayerStatus = (payload: PlayerStatusPayload): void => {
     const seat = lobbySeats.value.find((s) => s.seatIndex === payload.seatIndex)
     addNotification(`${seat?.name ?? 'A player'} is ${payload.status}`)
+  }
+
+  const handleGoOutRequested = (payload: GoOutRequestedPayload): void => {
+    goOutRequest.value = { askerName: payload.askerName }
   }
 
   const handleServerError = (payload: ErrorPayload): void => {
@@ -330,6 +369,7 @@ function defineGameStore(instanceId: string) {
     errors,
     notifications,
     pendingMove,
+    goOutRequest,
 
     // Computed
     isInLobby,
@@ -353,6 +393,7 @@ function defineGameStore(instanceId: string) {
     canDraw,
     canPlay,
     canGoOut,
+    canAskToGoOut,
     discardTopCard,
     deckCount,
     discardCount,
@@ -373,12 +414,15 @@ function defineGameStore(instanceId: string) {
     pickUpFoot,
     playRedThree,
     grantPermissionToGoOut,
+    askToGoOut,
+    respondToGoOutRequest,
 
     // Handlers
     handleWelcome,
     handleState,
     handlePlayersLobby,
     handlePlayerStatus,
+    handleGoOutRequested,
     handleServerError,
     handleJoinFailure,
 

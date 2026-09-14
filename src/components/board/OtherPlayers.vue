@@ -5,7 +5,9 @@
 import { computed } from 'vue'
 import type { GameStore } from '@/stores/game'
 import OtherPlayerHand from './OtherPlayerHand.vue'
+import Button from '@/components/Button.vue'
 import { otherSeatIndices, otherPlayerAtSeat } from '@/utils/seatLayout'
+import { otherHandHalfWidthExpr } from '@/utils/handLayout'
 
 const props = defineProps<{
   gameStore: GameStore
@@ -34,6 +36,13 @@ function playerAt(seatIndex: number) {
 const partner = computed(() => playerAt(seats.value.partner))
 const left = computed(() => playerAt(seats.value.left))
 const right = computed(() => playerAt(seats.value.right))
+
+// Sits just right of the partner's own hand edge — the top-seat analogue
+// of GameView.vue's Sort button, which hugs the player's own hand the
+// same way (50vw ± the hand's dynamic half-width).
+const askToGoOutRightOffset = computed(
+  () => `calc(50vw + ${otherHandHalfWidthExpr(partner.value.handLength)} + 1rem)`,
+)
 </script>
 
 <template>
@@ -46,6 +55,9 @@ const right = computed(() => playerAt(seats.value.right))
     :clickable="clickableNames"
     @select="emit('select-seat', seats.partner)"
   />
+  <div v-if="gameStore.canAskToGoOut" class="fixed top-4" :style="{ right: askToGoOutRightOffset }">
+    <Button label="Ask to go out" @click="gameStore.askToGoOut()" />
+  </div>
   <OtherPlayerHand
     position="left"
     :name="left.name"
