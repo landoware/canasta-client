@@ -39,6 +39,11 @@ const ROTATE_DEG: Record<'top' | 'left' | 'right', number> = { top: 0, left: -90
 
 const isFanned = computed(() => props.handLength <= FAN_THRESHOLD)
 
+// The partner (top) is this player's own team — blue backs, matching
+// the draw deck, same as MyFoot.vue's own foot. The other two seats are
+// the opposing team — red, same as they've always been.
+const cardBack = computed(() => (props.position === 'top' ? 'blue' : 'red'))
+
 // Horizontal spread (top) offsets along X; vertical spread (left/right)
 // offsets along Y. The perpendicular axis is always 0 — the anchor edge
 // (top-0/left-0/right-0) plus the outer 50%-offscreen translate does the
@@ -132,7 +137,7 @@ const footDynamicStyle = computed(() => {
         <PlayingCard
           v-for="layout in cardLayouts"
           :key="layout.key"
-          back="red"
+          :back="cardBack"
           class="!absolute !w-[calc(var(--card-base-width)*var(--card-scale,1)*0.75)]"
           :class="{
             '!top-0 !left-1/2': position === 'top',
@@ -154,7 +159,7 @@ const footDynamicStyle = computed(() => {
         <PlayingCard
           v-for="n in stackLayers"
           :key="n"
-          back="red"
+          :back="cardBack"
           class="!absolute !inset-0"
           :style="{
             transform: `translate(${(n - 1) * 2}px, ${-(n - 1) * 2}px) rotate(${ROTATE_DEG[position]}deg)`,
@@ -217,6 +222,6 @@ const footDynamicStyle = computed(() => {
   </button>
 
   <div class="fixed" :class="footFixedClass[position]" :style="footDynamicStyle">
-    <FootPile :visible="hasFoot" :rotate-deg="footRotateDeg" />
+    <FootPile :visible="hasFoot" :rotate-deg="footRotateDeg" :back="cardBack" />
   </div>
 </template>

@@ -48,6 +48,7 @@ function onPickUp(): void {
       :dimmed="!gameStore.myMadeCanasta"
       :clickable="true"
       :rotate-deg="90"
+      back="blue"
       @pick-up="onPickUp"
     />
   </div>

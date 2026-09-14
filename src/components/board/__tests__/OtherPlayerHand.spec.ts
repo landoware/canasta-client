@@ -17,7 +17,7 @@ describe('OtherPlayerHand', () => {
 
   it('fans one face-down card per card in a 15-or-fewer hand', () => {
     const wrapper = mount(OtherPlayerHand, {
-      props: { name: 'Bob', handLength: 11, hasFoot: false, isCurrentTurn: false, position: 'top' },
+      props: { name: 'Bob', handLength: 11, hasFoot: false, isCurrentTurn: false, position: 'left' },
     })
 
     const cards = wrapper.findAllComponents(PlayingCard)
@@ -25,6 +25,43 @@ describe('OtherPlayerHand', () => {
     cards.forEach((card) => {
       expect(card.props('card')).toBeUndefined() // face-down: no `card`, just a back
       expect(card.props('back')).toBe('red')
+    })
+  })
+
+  describe('card back color', () => {
+    it("colors the partner's (top) hand and foot blue, matching the draw deck", () => {
+      const wrapper = mount(OtherPlayerHand, {
+        props: { name: 'Bob', handLength: 5, hasFoot: true, isCurrentTurn: false, position: 'top' },
+      })
+
+      wrapper.findAllComponents(PlayingCard).forEach((card) => {
+        expect(card.props('back')).toBe('blue')
+      })
+      expect(wrapper.findComponent(FootPile).props('back')).toBe('blue')
+    })
+
+    it.each(['left', 'right'] as const)(
+      "colors the %s opponent's hand and foot red",
+      (position) => {
+        const wrapper = mount(OtherPlayerHand, {
+          props: { name: 'Bob', handLength: 5, hasFoot: true, isCurrentTurn: false, position },
+        })
+
+        wrapper.findAllComponents(PlayingCard).forEach((card) => {
+          expect(card.props('back')).toBe('red')
+        })
+        expect(wrapper.findComponent(FootPile).props('back')).toBe('red')
+      },
+    )
+
+    it("colors the partner's stacked (16+ card) hand blue too", () => {
+      const wrapper = mount(OtherPlayerHand, {
+        props: { name: 'Bob', handLength: 20, hasFoot: false, isCurrentTurn: false, position: 'top' },
+      })
+
+      wrapper.findAllComponents(PlayingCard).forEach((card) => {
+        expect(card.props('back')).toBe('blue')
+      })
     })
   })
 

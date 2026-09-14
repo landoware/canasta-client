@@ -64,4 +64,12 @@ describe('FootPile', () => {
 
     expect(wrapper.find('div').attributes('style')).toContain('transform: rotate(90deg)')
   })
+
+  it('defaults to a red back, but renders blue when requested', () => {
+    const red = mount(FootPile, { props: { visible: true, rotateDeg: 0 } })
+    const blue = mount(FootPile, { props: { visible: true, rotateDeg: 0, back: 'blue' } })
+
+    red.findAllComponents(PlayingCard).forEach((card) => expect(card.props('back')).toBe('red'))
+    blue.findAllComponents(PlayingCard).forEach((card) => expect(card.props('back')).toBe('blue'))
+  })
 })

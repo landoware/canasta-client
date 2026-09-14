@@ -72,6 +72,7 @@ describe('MyFoot', () => {
     expect(pile.props('visible')).toBe(true)
     expect(pile.props('dimmed')).toBe(true)
     expect(pile.props('clickable')).toBe(true)
+    expect(pile.props('back')).toBe('blue')
   })
 
   it('is not dimmed once madeCanasta is true', () => {

@@ -17,9 +17,13 @@ interface Props {
   // Only the local player's own pile is clickable; opponents' are a
   // plain, non-interactive display.
   clickable?: boolean
+  // Blue for your own team's feet (matching the draw deck), red for
+  // the opposing team's — callers decide which, same team-color
+  // convention as the hand backs in OtherPlayerHand.vue.
+  back?: 'red' | 'blue'
 }
 
-const props = withDefaults(defineProps<Props>(), { dimmed: false, clickable: false })
+const props = withDefaults(defineProps<Props>(), { dimmed: false, clickable: false, back: 'red' })
 const emit = defineEmits<{ 'pick-up': [] }>()
 
 const STACK_DEPTH = 4
@@ -46,7 +50,7 @@ function handleClick(): void {
     <PlayingCard
       v-for="n in STACK_DEPTH"
       :key="n"
-      back="red"
+      :back="back"
       class="!absolute !inset-0"
       :style="{ transform: `translate(${(n - 1) * 2}px, ${-(n - 1) * 2}px)` }"
     />
