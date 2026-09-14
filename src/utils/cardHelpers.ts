@@ -158,6 +158,25 @@ export const isValidBurn = (
   return true
 }
 
+// Mirrors internal/canasta/moves.go's PickUpDiscardPile frozen check —
+// only used to decide when to show the pile as pickable client-side.
+export const isPileFrozen = (topCard: Card): boolean => topCard.rank === Three
+
+// Mirrors internal/canasta/moves.go's PickUpDiscardPile card-matching
+// logic exactly, including the wild-top-card special case (every
+// selected card must itself be wild when the top card is). The go-down
+// point-requirement check is deliberately NOT mirrored here — same as
+// meetsGoDownRequirement being separate from meld validity below — the
+// server remains authoritative on scoring; a rejected pickup surfaces
+// through the normal error-toast path.
+export const isValidPileMatch = (topCard: Card, cards: Card[]): boolean => {
+  if (cards.length < 2) return false
+  if (isPileFrozen(topCard)) return false
+
+  const topWild = isWildCard(topCard)
+  return cards.every((c) => (topWild ? isWildCard(c) : c.rank === topCard.rank || isWildCard(c)))
+}
+
 // Mirrors internal/canasta/canasta.go's meldRequirements — total staged
 // meld points needed to go down, keyed by hand number. The game only ever
 // runs hands 1-4 (see Game.EndHand); Infinity is a defensive fallback so

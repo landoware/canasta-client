@@ -76,7 +76,8 @@ function clearSelection(): void {
   <CenterPile
     :game-store="gameStore"
     :selected-card-id="singleSelectedCardId"
-    @discarded="clearSelection"
+    :selected-card-ids="selectedCardIds"
+    @played="clearSelection"
   />
   <OtherPlayers
     :game-store="gameStore"

@@ -134,9 +134,34 @@ describe('TeamMelds', () => {
     expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
   })
 
-  it('hides the create-meld affordance when it is not this seat\'s turn to play', () => {
+  it('hides the create-meld affordance when it is not this seat\'s turn at all', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ phase: PhaseDrawing }))
+    gameStore.handleState(baseState({ isYourTurn: false }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+    })
+
+    expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
+  })
+
+  // New meld/add-to-meld may now also run during the draw phase, but only
+  // while staging (before going down) — see dispatch.go's
+  // meldAllowedInDrawPhase carve-out.
+  it('shows the create-meld affordance during the draw phase while still staging (not gone down)', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhaseDrawing, goneDown: false }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+    })
+
+    expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(true)
+  })
+
+  it('hides the create-meld affordance during the draw phase once the team has gone down', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhaseDrawing, goneDown: true }))
 
     const wrapper = mount(TeamMelds, {
       props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
@@ -308,11 +333,47 @@ describe('TeamMelds', () => {
     expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
   })
 
-  it('hides clickability when it is not this seat\'s turn to play', () => {
+  it('hides clickability when it is not this seat\'s turn at all', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        isYourTurn: false,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+    expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
+  })
+
+  it('shows clickability during the draw phase while still staging (not gone down)', () => {
     const gameStore = useGameStore()
     gameStore.handleState(
       baseState({
         phase: PhaseDrawing,
+        goneDown: false,
+        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+      }),
+    )
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+    expect(meldsRow.props('clickableGroupIds')).toEqual(new Set([1]))
+  })
+
+  it('hides clickability during the draw phase once the team has gone down', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        phase: PhaseDrawing,
+        goneDown: true,
         ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
       }),
     )

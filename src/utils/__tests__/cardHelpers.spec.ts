@@ -5,6 +5,8 @@ import {
   isValidAddToMeld,
   isValidBurn,
   isValidRedThreePlay,
+  isPileFrozen,
+  isValidPileMatch,
   meldsPointTotal,
   meetsGoDownRequirement,
 } from '../cardHelpers'
@@ -273,6 +275,78 @@ describe('isValidBurn', () => {
   it('rejects an empty selection', () => {
     const canasta = { rank: Four, natural: true, cards: [] }
     expect(isValidBurn(canasta, [])).toBe(false)
+  })
+})
+
+describe('isPileFrozen', () => {
+  it('is frozen when the top card is a three, red or black', () => {
+    expect(isPileFrozen({ id: 1, suit: Hearts, rank: Three })).toBe(true)
+    expect(isPileFrozen({ id: 2, suit: Clubs, rank: Three })).toBe(true)
+  })
+
+  it('is not frozen for any other rank', () => {
+    expect(isPileFrozen({ id: 3, suit: Hearts, rank: Four })).toBe(false)
+  })
+})
+
+describe('isValidPileMatch', () => {
+  const topCard = { id: 1, suit: Hearts, rank: Four }
+
+  it('requires at least 2 selected cards', () => {
+    expect(isValidPileMatch(topCard, [{ id: 2, suit: Clubs, rank: Four }])).toBe(false)
+  })
+
+  it('matches when every selected card is the same rank as the top card', () => {
+    expect(
+      isValidPileMatch(topCard, [
+        { id: 2, suit: Clubs, rank: Four },
+        { id: 3, suit: Diamonds, rank: Four },
+      ]),
+    ).toBe(true)
+  })
+
+  it('rejects a rank mismatch', () => {
+    expect(
+      isValidPileMatch(topCard, [
+        { id: 2, suit: Clubs, rank: Four },
+        { id: 3, suit: Diamonds, rank: Eight },
+      ]),
+    ).toBe(false)
+  })
+
+  it('allows wild cards to fill in alongside matching-rank cards', () => {
+    expect(
+      isValidPileMatch(topCard, [
+        { id: 2, suit: Clubs, rank: Four },
+        { id: 3, suit: Hearts, rank: Two },
+      ]),
+    ).toBe(true)
+  })
+
+  it('is always frozen (rejected) when the top card is a three', () => {
+    const frozenTop = { id: 1, suit: Clubs, rank: Three }
+    expect(
+      isValidPileMatch(frozenTop, [
+        { id: 2, suit: Clubs, rank: Three },
+        { id: 3, suit: Spades, rank: Three },
+      ]),
+    ).toBe(false)
+  })
+
+  it('requires an all-wild selection when the top card itself is wild', () => {
+    const wildTop = { id: 1, suit: Hearts, rank: Two }
+    expect(
+      isValidPileMatch(wildTop, [
+        { id: 2, suit: Clubs, rank: Two },
+        { id: 3, suit: Hearts, rank: Joker },
+      ]),
+    ).toBe(true)
+    expect(
+      isValidPileMatch(wildTop, [
+        { id: 2, suit: Clubs, rank: Two },
+        { id: 3, suit: Hearts, rank: Four },
+      ]),
+    ).toBe(false)
   })
 })
 

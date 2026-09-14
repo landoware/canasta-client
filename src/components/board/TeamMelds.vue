@@ -9,6 +9,7 @@
 import { computed, ref, watch } from 'vue'
 import type { GameStore } from '@/stores/game'
 import { useSettingsStore, MeldsPositionBottom } from '@/stores/settings'
+import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
 import {
   isValidNewMeld,
   isValidAddToMeld,
@@ -36,9 +37,21 @@ const topPositionClass = 'top-1/4 -translate-y-1/2'
 const selectedCards = computed(() =>
   props.gameStore.myHand.filter((card) => props.selectedCardIds.has(card.id)),
 )
-const canCreateMeld = computed(
-  () => props.gameStore.canPlay && isValidNewMeld(selectedCards.value),
+
+// New meld / add-to-meld may also run during the draw phase, but only
+// while staging (before going down) — mirrors dispatch.go's
+// meldAllowedInDrawPhase carve-out, which lets a player stage a meld
+// before picking up the discard pile without loosening the phase rule
+// for a player extending their team's real, already-gone-down melds.
+const canMeld = computed(
+  () =>
+    props.gameStore.isMyTurn &&
+    !props.gameStore.pendingMove &&
+    (props.gameStore.currentPhase === PhasePlaying ||
+      (props.gameStore.currentPhase === PhaseDrawing && !props.gameStore.hasGoneDown)),
 )
+
+const canCreateMeld = computed(() => canMeld.value && isValidNewMeld(selectedCards.value))
 
 function onCreateMeld(): void {
   if (!canCreateMeld.value) return
@@ -51,7 +64,7 @@ function onCreateMeld(): void {
 // AddToMeld in moves.go, which now checks both). myTeamMelds is always
 // entirely one or the other, so no extra gating is needed here.
 const addableMeldIds = computed(() => {
-  if (!props.gameStore.canPlay) return new Set<number>()
+  if (!canMeld.value) return new Set<number>()
   const ids = props.gameStore.myTeamMelds
     .filter((meld) => isValidAddToMeld(meld, selectedCards.value))
     .map((meld) => meld.id)

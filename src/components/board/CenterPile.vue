@@ -4,15 +4,20 @@
 // it works against the real single-player instance or any of /demo's seats.
 import { computed } from 'vue'
 import type { GameStore } from '@/stores/game'
-import { isRedThree } from '@/utils/cardHelpers'
+import { isRedThree, isValidPileMatch } from '@/utils/cardHelpers'
 import DeckPile from './DeckPile.vue'
 import DiscardPile from './DiscardPile.vue'
 
 // selectedCardId is the one hand card GameView currently has selected, or
 // null when zero or more than one is selected — discarding only ever
-// targets a single card.
-const props = defineProps<{ gameStore: GameStore; selectedCardId: number | null }>()
-const emit = defineEmits<{ discarded: [] }>()
+// targets a single card. selectedCardIds is the full selection, needed
+// for picking up the pile (2+ cards) — see selectedCards below.
+const props = defineProps<{
+  gameStore: GameStore
+  selectedCardId: number | null
+  selectedCardIds: Set<number>
+}>()
+const emit = defineEmits<{ played: [] }>()
 
 function onDraw(): void {
   props.gameStore.drawFromDeck()
@@ -27,10 +32,28 @@ const canDiscard = computed(() => {
   return card !== undefined && !isRedThree(card)
 })
 
+const selectedCards = computed(() =>
+  props.gameStore.myHand.filter((card) => props.selectedCardIds.has(card.id)),
+)
+
+// Picking up the pile is only ever available during the draw phase (see
+// PickUpDiscardPile in moves.go, which flips the phase to playing once
+// it succeeds) — canDraw already encodes isMyTurn/phase/pendingMove, so
+// this doesn't need to re-derive any of that.
+const canPickUpPile = computed(() => {
+  const topCard = props.gameStore.discardTopCard
+  return props.gameStore.canDraw && topCard !== undefined && isValidPileMatch(topCard, selectedCards.value)
+})
+
 function onDiscardPileClick(): void {
+  if (canPickUpPile.value) {
+    props.gameStore.pickUpDiscardPile([...props.selectedCardIds])
+    emit('played')
+    return
+  }
   if (!canDiscard.value) return
   props.gameStore.discard(props.selectedCardId!)
-  emit('discarded')
+  emit('played')
 }
 </script>
 
@@ -41,7 +64,7 @@ function onDiscardPileClick(): void {
       <DiscardPile
         :top-card="gameStore.discardTopCard"
         :count="gameStore.discardCount"
-        :disabled="!canDiscard"
+        :disabled="!canDiscard && !canPickUpPile"
         @click="onDiscardPileClick"
       />
     </div>
