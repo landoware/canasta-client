@@ -1,8 +1,10 @@
 <script setup lang="ts">
 // An opponent/partner's hand: mirrors PlayerHand's fan (same spacing math,
 // swapped to whichever axis this position spreads along) but face-down and
-// non-interactive. Above 15 cards we switch to a capped stack + count,
-// like DeckPile, rather than fanning an unreadable number of backs.
+// non-interactive. Above 15 cards we switch to a capped stack, like
+// DeckPile, rather than fanning an unreadable number of backs; a numeric
+// count (below) is always shown regardless, since a stack's depth is
+// capped and no longer reflects the real hand size.
 import { computed } from 'vue'
 import PlayingCard from './PlayingCard.vue'
 
@@ -104,15 +106,25 @@ const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
             transform: `translate(${(n - 1) * 2}px, ${-(n - 1) * 2}px) rotate(${ROTATE_DEG[position]}deg)`,
           }"
         />
-        <span
-          class="absolute inset-x-0 text-center font-rs-bold text-card-white"
-          :class="position === 'top' ? '-bottom-6' : 'top-1/2 -translate-y-1/2'"
-        >
-          {{ handLength }}
-        </span>
       </div>
     </div>
   </div>
+
+  <span
+    class="fixed pointer-events-none font-rs-bold text-card-white"
+    :class="{
+      'inset-x-0 text-center': position === 'top',
+      'top-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*1065/769*0.5+0.5rem)]':
+        position === 'top',
+      'top-1/2 -translate-y-1/2': position !== 'top',
+      'left-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)] -rotate-90':
+        position === 'left',
+      'right-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)] rotate-90':
+        position === 'right',
+    }"
+  >
+    {{ handLength }}
+  </span>
 
   <button
     type="button"
@@ -130,15 +142,15 @@ const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
         // dimensions rather than a fixed guess, so this holds at any
         // --card-scale.
         'inset-x-0 text-center': position === 'top',
-        'top-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*1065/769*0.5+0.5rem)]':
+        'top-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*1065/769*0.5+2rem)]':
           position === 'top',
         'top-1/2 -translate-y-1/2': position !== 'top',
         // Rotated so the bottom of the text faces screen center on both
         // sides (mirror-image rotations, like the cards) rather than
         // reading sideways in the same direction on both edges.
-        'left-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)] -rotate-90':
+        'left-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+2rem)] -rotate-90':
           position === 'left',
-        'right-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)] rotate-90':
+        'right-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+2rem)] rotate-90':
           position === 'right',
       },
     ]"

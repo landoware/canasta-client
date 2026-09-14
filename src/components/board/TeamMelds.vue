@@ -6,10 +6,16 @@
 // (top) for the other — swappable via the meldsPosition setting. Also
 // hosts the create-meld affordance (melds row only — new melds are never
 // created directly as canastas).
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { GameStore } from '@/stores/game'
 import { useSettingsStore, MeldsPositionBottom } from '@/stores/settings'
-import { isValidNewMeld, isValidAddToMeld, meetsGoDownRequirement } from '@/utils/cardHelpers'
+import {
+  isValidNewMeld,
+  isValidAddToMeld,
+  isValidRedThreePlay,
+  isRedThree,
+  meetsGoDownRequirement,
+} from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
 import Button from '@/components/Button.vue'
 
@@ -70,6 +76,76 @@ function onGoDown(): void {
   if (!canGoDown.value) return
   props.gameStore.goDown()
 }
+
+// Red threes display alongside the canastas — like a canasta, a red
+// three is a completed, scored group rather than something still in
+// play. Sentinel id: real group ids come from actual card ids (always
+// >= 0), so -1 can never collide with one.
+const RED_THREES_GROUP_ID = -1
+const redThreeGroups = computed(() =>
+  props.gameStore.myRedThrees.length > 0
+    ? [{ id: RED_THREES_GROUP_ID, cards: props.gameStore.myRedThrees }]
+    : [],
+)
+
+// Playing red threes is only ever allowed at the very start of a turn
+// (before the normal draw — see PlayRedThree in moves.go), same window
+// as canDraw.
+const canPlayRedThree = computed(
+  () => props.gameStore.canDraw && isValidRedThreePlay(selectedCards.value),
+)
+
+// Set right after this client asks to play red three(s) (manually or
+// automatically); the watcher below fires the follow-up normal draw once
+// none remain in hand — see it for why that's not immediate.
+const awaitingRedThreeDraw = ref(false)
+
+function onPlayRedThree(): void {
+  if (!canPlayRedThree.value) return
+  props.gameStore.playRedThree([...props.selectedCardIds])
+  awaitingRedThreeDraw.value = true
+  emit('melded')
+}
+
+// Drives both halves of this feature reactively, off of the hand itself
+// (which is what actually changes once a play_red_three round-trip
+// completes — sendMove's pendingMove guard means a follow-up move can't
+// just be sent immediately after playRedThree()):
+//  - auto-play: with the setting on, any red three(s) sitting in hand at
+//    the start of a turn get played automatically, in one batch.
+//  - auto-draw: once no red three remains in hand (whether cleared by
+//    auto-play or a manual play via onPlayRedThree above), fires the
+//    turn's actual normal draw — but only for a play *this client*
+//    started, not just because a turn happened to start empty-handed of
+//    red threes (a plain new turn shouldn't auto-draw on its own).
+// A red three played from hand always gets an immediate replacement card
+// (see PlayRedThree in moves.go), which can itself be a further red
+// three — unlike the normal draw, that path doesn't loop to clear it, so
+// this can legitimately fire more than once per turn.
+watch(
+  () => [props.gameStore.myHand, props.gameStore.canDraw] as const,
+  ([hand, canDraw]) => {
+    if (!canDraw) return
+    const heldRedThrees = hand.filter(isRedThree)
+
+    if (heldRedThrees.length === 0) {
+      if (awaitingRedThreeDraw.value) {
+        awaitingRedThreeDraw.value = false
+        props.gameStore.drawFromDeck()
+      }
+      return
+    }
+
+    if (settings.autoPlayRedThrees) {
+      awaitingRedThreeDraw.value = true
+      props.gameStore.playRedThree(heldRedThrees.map((card) => card.id))
+    }
+  },
+  // A red three can already be sitting in hand the moment this mounts
+  // (e.g. reloading mid-turn) — this shouldn't need a subsequent hand
+  // change to notice that and auto-play it.
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -91,6 +167,10 @@ function onGoDown(): void {
     class="fixed inset-x-0 flex items-center justify-center pointer-events-none"
     :class="meldsAtBottom ? topPositionClass : bottomPositionClass"
   >
-    <MeldRow :groups="gameStore.myTeamCanastas" />
+    <MeldRow
+      :groups="[...gameStore.myTeamCanastas, ...redThreeGroups]"
+      :show-create-affordance="canPlayRedThree"
+      @create="onPlayRedThree"
+    />
   </div>
 </template>

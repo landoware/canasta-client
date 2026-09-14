@@ -4,6 +4,7 @@
 // it works against the real single-player instance or any of /demo's seats.
 import { computed } from 'vue'
 import type { GameStore } from '@/stores/game'
+import { isRedThree } from '@/utils/cardHelpers'
 import DeckPile from './DeckPile.vue'
 import DiscardPile from './DiscardPile.vue'
 
@@ -17,7 +18,14 @@ function onDraw(): void {
   props.gameStore.drawFromDeck()
 }
 
-const canDiscard = computed(() => props.gameStore.canPlay && props.selectedCardId !== null)
+// A red three is never discardable (see Discard in moves.go, which now
+// rejects it too) — it's always played via the red-threes affordance in
+// TeamMelds.vue instead.
+const canDiscard = computed(() => {
+  if (!props.gameStore.canPlay || props.selectedCardId === null) return false
+  const card = props.gameStore.myHand.find((c) => c.id === props.selectedCardId)
+  return card !== undefined && !isRedThree(card)
+})
 
 function onDiscardPileClick(): void {
   if (!canDiscard.value) return

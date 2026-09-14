@@ -77,4 +77,16 @@ describe('SettingsMenu', () => {
     await meldsSelect.setValue(MeldsPositionTop)
     expect(settings.meldsPosition).toBe(MeldsPositionTop)
   })
+
+  it('defaults the auto-play-red-threes checkbox to unchecked and updates the setting', async () => {
+    const wrapper = mount(SettingsMenu)
+    const settings = useSettingsStore()
+    await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+    const checkbox = wrapper.find('input[type="checkbox"]')
+    expect((checkbox.element as HTMLInputElement).checked).toBe(false)
+
+    await checkbox.setValue(true)
+    expect(settings.autoPlayRedThrees).toBe(true)
+  })
 })

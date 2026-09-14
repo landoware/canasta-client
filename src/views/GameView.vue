@@ -6,6 +6,7 @@ import { useSortableHand } from '@/composables/useSortableHand'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
 import OtherPlayers from '@/components/board/OtherPlayers.vue'
+import OpponentMelds from '@/components/board/OpponentMelds.vue'
 import TeamMelds from '@/components/board/TeamMelds.vue'
 import Button from '@/components/Button.vue'
 
@@ -72,6 +73,7 @@ function clearSelection(): void {
     :clickable-names="allowSeatSwitch"
     @select-seat="emit('select-seat', $event)"
   />
+  <OpponentMelds :game-store="gameStore" />
   <TeamMelds
     :game-store="gameStore"
     :selected-card-ids="selectedCardIds"

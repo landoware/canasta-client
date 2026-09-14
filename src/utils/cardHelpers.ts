@@ -94,6 +94,13 @@ export const isValidNewMeld = (cards: Card[]): boolean => {
   return wildCount <= 3
 }
 
+// Mirrors internal/canasta/moves.go's Game.PlayRedThree's own card
+// validation (rank Three, red suit) — only used to decide when to show
+// the red-three create affordance client-side.
+export const isValidRedThreePlay = (cards: Card[]): boolean => {
+  return cards.length > 0 && cards.every(isRedThree)
+}
+
 // Mirrors internal/canasta/moves.go's Game.AddToMeld exactly, including
 // checking wildcard count cumulatively across the whole batch being added
 // (the server increments meld.WildCount once per wild card in the loop

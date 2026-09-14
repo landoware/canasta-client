@@ -20,6 +20,10 @@ export const useSettingsStore = defineStore('settings', () => {
   // player's own hand; completed canastas take the other half (nearer the
   // partner's hand). This just swaps which is which.
   const meldsPosition = ref<MeldsPosition>(MeldsPositionBottom)
+  // Off by default: a player who wants to hold a red three back (rare,
+  // but the rules don't forbid it) shouldn't have it played out from
+  // under them the instant their turn starts.
+  const autoPlayRedThrees = ref(false)
 
-  return { cardScale, sortMethod, meldsPosition }
+  return { cardScale, sortMethod, meldsPosition, autoPlayRedThrees }
 })

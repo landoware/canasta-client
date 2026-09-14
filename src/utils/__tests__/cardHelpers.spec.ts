@@ -3,6 +3,7 @@ import {
   cardPointValue,
   isValidNewMeld,
   isValidAddToMeld,
+  isValidRedThreePlay,
   meldsPointTotal,
   meetsGoDownRequirement,
 } from '../cardHelpers'
@@ -196,6 +197,42 @@ describe('isValidAddToMeld', () => {
   it('an all-wild meld keeps accepting wildcards well past what would be the normal cap', () => {
     const meld = { rank: 14, wildCount: 10 } // Wild
     expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Joker }])).toBe(true)
+  })
+})
+
+describe('isValidRedThreePlay', () => {
+  it('accepts a single red three', () => {
+    expect(isValidRedThreePlay([{ id: 1, suit: Hearts, rank: Three }])).toBe(true)
+    expect(isValidRedThreePlay([{ id: 1, suit: Diamonds, rank: Three }])).toBe(true)
+  })
+
+  it('accepts multiple red threes at once', () => {
+    const cards = [
+      { id: 1, suit: Hearts, rank: Three },
+      { id: 2, suit: Diamonds, rank: Three },
+    ]
+    expect(isValidRedThreePlay(cards)).toBe(true)
+  })
+
+  it('rejects a black three', () => {
+    expect(isValidRedThreePlay([{ id: 1, suit: Clubs, rank: Three }])).toBe(false)
+    expect(isValidRedThreePlay([{ id: 1, suit: Spades, rank: Three }])).toBe(false)
+  })
+
+  it('rejects any selection mixing a black three in with red ones', () => {
+    const cards = [
+      { id: 1, suit: Hearts, rank: Three },
+      { id: 2, suit: Clubs, rank: Three },
+    ]
+    expect(isValidRedThreePlay(cards)).toBe(false)
+  })
+
+  it('rejects a non-three card', () => {
+    expect(isValidRedThreePlay([{ id: 1, suit: Hearts, rank: Four }])).toBe(false)
+  })
+
+  it('rejects an empty selection', () => {
+    expect(isValidRedThreePlay([])).toBe(false)
   })
 })
 

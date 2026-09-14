@@ -8,7 +8,7 @@ import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useSettingsStore, MeldsPositionTop } from '@/stores/settings'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing, PhasePlaying, Hearts, Diamonds, Clubs, Four } from '@/types/canasta'
+import { PhaseDrawing, PhasePlaying, Hearts, Diamonds, Clubs, Four, Three } from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -357,5 +357,183 @@ describe('TeamMelds', () => {
 
     expect(send).not.toHaveBeenCalled()
     expect(wrapper.emitted('melded')).toBeUndefined()
+  })
+
+  describe('red threes', () => {
+    it('shows the red-threes pile as an extra tile in the canastas row when the team holds any', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ ourRedThrees: [{ id: 500, suit: Hearts, rank: Three }] }))
+
+      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+      expect(canastasRow.props('groups')).toEqual([
+        ...gameStore.myTeamCanastas,
+        { id: -1, cards: [{ id: 500, suit: Hearts, rank: Three }] },
+      ])
+    })
+
+    it('omits the red-threes tile when the team holds none', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ ourRedThrees: [] }))
+
+      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+      expect(canastasRow.props('groups')).toEqual(gameStore.myTeamCanastas)
+    })
+
+    it('shows the create affordance only when the whole selection is red threes, in the drawing phase', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([201]) },
+      })
+      const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+      expect(canastasRow.props('showCreateAffordance')).toBe(true)
+    })
+
+    it('hides the create affordance when nothing, or something other than a red three, is selected', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: {
+            201: { id: 201, suit: Hearts, rank: Three },
+            202: { id: 202, suit: Hearts, rank: Four },
+          },
+        }),
+      )
+
+      const none = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      expect(none.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
+
+      const wrongCard = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([202]) } })
+      expect(wrongCard.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
+
+      const mixed = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201, 202]) } })
+      expect(mixed.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
+    })
+
+    it('hides the create affordance outside the drawing phase, even with a valid selection', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhasePlaying,
+          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201]) } })
+
+      expect(wrapper.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
+    })
+
+    it('plays the selected red three(s) through the real store action and emits melded when the tile is clicked', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201]) } })
+      wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('create')
+
+      expect(send).toHaveBeenCalledWith('play_red_three', { cardIds: [201], fromFoot: false })
+      expect(wrapper.emitted('melded')).toHaveLength(1)
+    })
+
+    it('auto-plays every red three in hand at the start of a turn when the setting is enabled', () => {
+      useSettingsStore().autoPlayRedThrees = true
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: {
+            201: { id: 201, suit: Hearts, rank: Three },
+            202: { id: 202, suit: Diamonds, rank: Three },
+            203: { id: 203, suit: Hearts, rank: Four },
+          },
+        }),
+      )
+
+      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+
+      expect(send).toHaveBeenCalledWith('play_red_three', { cardIds: [201, 202], fromFoot: false })
+    })
+
+    it('does not auto-play when the setting is disabled', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
+        }),
+      )
+
+      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+
+      expect(send).not.toHaveBeenCalled()
+    })
+
+    it('does not auto-play when it is not this player\'s turn to draw', () => {
+      useSettingsStore().autoPlayRedThrees = true
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          isYourTurn: false,
+          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
+        }),
+      )
+
+      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+
+      expect(send).not.toHaveBeenCalled()
+    })
+
+    it('auto-draws once no red three remains in hand after this client played one', async () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201]) } })
+      wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('create')
+      expect(send).toHaveBeenCalledWith('play_red_three', { cardIds: [201], fromFoot: false })
+
+      // Simulate the server's response: the three is gone from hand, a
+      // fresh (non-three) replacement is in, still the drawing phase.
+      gameStore.handleState(
+        baseState({
+          phase: PhaseDrawing,
+          hand: { 210: { id: 210, suit: Hearts, rank: Four } },
+        }),
+      )
+      await wrapper.vm.$nextTick()
+
+      expect(send).toHaveBeenCalledWith('draw_from_deck', {})
+    })
+
+    it('does not auto-draw just because a turn starts with no red threes in hand', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhaseDrawing, hand: {} }))
+
+      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+
+      expect(send).not.toHaveBeenCalled()
+    })
   })
 })

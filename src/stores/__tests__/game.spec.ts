@@ -211,4 +211,16 @@ describe('game store', () => {
 
     expect(send).toHaveBeenCalledTimes(1)
   })
+
+  it('clears pendingMove on a server error, so a rejected move does not block every move after it', () => {
+    const store = useGameStore()
+    store.drawFromDeck()
+    expect(store.pendingMove).toBe(true)
+
+    store.handleServerError({ code: 'SOME_ERROR', message: 'nope' })
+    expect(store.pendingMove).toBe(false)
+
+    store.discard(1)
+    expect(send).toHaveBeenCalledWith('discard', { cardId: 1 })
+  })
 })

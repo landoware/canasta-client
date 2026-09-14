@@ -7,7 +7,7 @@ import DiscardPile from '../DiscardPile.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
+import { PhaseDrawing, PhasePlaying, Hearts, Clubs, Four, Three } from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -114,7 +114,9 @@ describe('CenterPile', () => {
 
   it('discards the selected card through the real store action and emits discarded', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ phase: PhasePlaying }))
+    gameStore.handleState(
+      baseState({ phase: PhasePlaying, hand: { 7: { id: 7, suit: Clubs, rank: Four } } }),
+    )
 
     const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: 7 } })
     expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(false)
@@ -123,5 +125,27 @@ describe('CenterPile', () => {
 
     expect(send).toHaveBeenCalledWith('discard', { cardId: 7 })
     expect(wrapper.emitted('discarded')).toHaveLength(1)
+  })
+
+  it('disables the discard pile when the selected card is a red three', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({ phase: PhasePlaying, hand: { 7: { id: 7, suit: Hearts, rank: Three } } }),
+    )
+
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: 7 } })
+
+    expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(true)
+  })
+
+  it('allows discarding a black three (only red threes are special)', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({ phase: PhasePlaying, hand: { 7: { id: 7, suit: Clubs, rank: Three } } }),
+    )
+
+    const wrapper = mount(CenterPile, { props: { gameStore, selectedCardId: 7 } })
+
+    expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(false)
   })
 })

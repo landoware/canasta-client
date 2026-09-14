@@ -95,6 +95,14 @@ function defineGameStore(instanceId: string) {
 
   const myTeamCanastas: ComputedRef<Canasta[]> = computed(() => gameState.value?.ourCanastas ?? [])
 
+  const myRedThrees: ComputedRef<Card[]> = computed(() => gameState.value?.ourRedThrees ?? [])
+
+  const opponentMelds: ComputedRef<Meld[]> = computed(() => gameState.value?.otherMelds ?? [])
+
+  const opponentCanastas: ComputedRef<Canasta[]> = computed(
+    () => gameState.value?.otherCanastas ?? [],
+  )
+
   // Whether myTeamMelds are the team's official melds (true) or this
   // player's own not-yet-committed staging melds (false) — see
   // internal/canasta/presentation.go's ClientState.GoneDown. It's an
@@ -249,6 +257,11 @@ function defineGameStore(instanceId: string) {
   }
 
   const handleServerError = (payload: ErrorPayload): void => {
+    // A rejected move never gets a matching state broadcast to clear
+    // pendingMove (see handleState) — without this, every move after the
+    // first rejected one would silently no-op forever (canDraw/canPlay
+    // are also gated on !pendingMove).
+    pendingMove.value = false
     addError(payload.message)
   }
 
@@ -315,6 +328,9 @@ function defineGameStore(instanceId: string) {
     opponentScore,
     myTeamMelds,
     myTeamCanastas,
+    myRedThrees,
+    opponentMelds,
+    opponentCanastas,
     hasGoneDown,
     canDraw,
     canPlay,
