@@ -101,6 +101,13 @@ export interface ClientState {
   name: string;
   hand: PlayerHand;
   hasFoot: boolean;
+  /**
+   * Whether this player has completed their own first canasta yet —
+   * see PickUpFoot in moves.go, whose sole eligibility check this
+   * mirrors. Per-player, not per-team: a partner going down or making
+   * a canasta doesn't earn this player their own foot.
+   */
+  madeCanasta: boolean;
   players: OtherPlayerState[];
   ourScore: number /* int */;
   /**

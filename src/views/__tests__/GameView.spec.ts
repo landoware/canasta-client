@@ -12,6 +12,7 @@ import { useSettingsStore } from '@/stores/settings'
 import type { StateMessage } from '@/types/protocol'
 import { PhasePlaying, Four, Eight } from '@/types/canasta'
 import { SortRankDescending } from '@/utils/handSort'
+import { handHalfWidthExpr } from '@/utils/handLayout'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -128,6 +129,18 @@ describe('GameView', () => {
     await wrapper.findComponent(Button).trigger('click')
 
     expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([2, 1])
+  })
+
+  it('positions the Sort button relative to the hand\'s current size, hugging the right edge', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState()) // default hand has 2 cards
+
+    const wrapper = mount(GameView)
+    const sortWrapper = wrapper.findComponent(Button).element.parentElement!
+
+    expect(sortWrapper.getAttribute('style')).toContain(
+      `left: calc(50vw + ${handHalfWidthExpr(2)} + 1rem)`,
+    )
   })
 
   it('uses the sortMethod configured in settings, not always rank ascending', async () => {

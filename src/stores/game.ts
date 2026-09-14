@@ -109,6 +109,13 @@ function defineGameStore(instanceId: string) {
   // all-or-nothing flag: myTeamMelds is never a mix of the two.
   const hasGoneDown: ComputedRef<boolean> = computed(() => gameState.value?.goneDown ?? false)
 
+  const myHasFoot: ComputedRef<boolean> = computed(() => gameState.value?.hasFoot ?? false)
+
+  // Whether this player has completed their own first canasta — see
+  // PickUpFoot in moves.go, whose sole eligibility check this mirrors.
+  // Per-player, not per-team, unlike hasGoneDown above.
+  const myMadeCanasta: ComputedRef<boolean> = computed(() => gameState.value?.madeCanasta ?? false)
+
   const canDraw: ComputedRef<boolean> = computed(
     () => isMyTurn.value && currentPhase.value === PhaseDrawing && !pendingMove.value,
   )
@@ -332,6 +339,8 @@ function defineGameStore(instanceId: string) {
     opponentMelds,
     opponentCanastas,
     hasGoneDown,
+    myHasFoot,
+    myMadeCanasta,
     canDraw,
     canPlay,
     canGoOut,

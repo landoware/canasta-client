@@ -76,6 +76,28 @@ describe('OtherPlayers', () => {
     expect(right!.props()).toMatchObject({ name: 'Seat3', handLength: 12, isCurrentTurn: false })
   })
 
+  it('threads hasFoot from OtherPlayerState into each OtherPlayerHand', () => {
+    const gameStore = useGameStore()
+    gameStore.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'playing' })
+    gameStore.handleState(
+      baseState({
+        players: [
+          { name: 'Seat1', handLength: 10, hasFoot: true },
+          { name: 'Seat2', handLength: 11, hasFoot: false },
+          { name: 'Seat3', handLength: 12, hasFoot: true },
+        ],
+      }),
+    )
+
+    const wrapper = mount(OtherPlayers, { props: { gameStore } })
+    const [top, left, right] = wrapper.findAllComponents(OtherPlayerHand)
+
+    // seat 0 -> left=1 (hasFoot), partner=2 (no foot), right=3 (hasFoot)
+    expect(left!.props('hasFoot')).toBe(true)
+    expect(top!.props('hasFoot')).toBe(false)
+    expect(right!.props('hasFoot')).toBe(true)
+  })
+
   it('remaps seats correctly for a viewer at a different seat', () => {
     const gameStore = useGameStore()
     gameStore.handleWelcome({ seatIndex: 2, roomCode: 'ABC123', roomState: 'playing' })

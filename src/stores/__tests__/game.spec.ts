@@ -124,6 +124,26 @@ describe('game store', () => {
     expect(store.hasGoneDown).toBe(true)
   })
 
+  it('myHasFoot reflects the server-sent hasFoot flag', () => {
+    const store = useGameStore()
+
+    store.handleState(baseState({ hasFoot: true }))
+    expect(store.myHasFoot).toBe(true)
+
+    store.handleState(baseState({ hasFoot: false }))
+    expect(store.myHasFoot).toBe(false)
+  })
+
+  it('myMadeCanasta reflects the server-sent madeCanasta flag', () => {
+    const store = useGameStore()
+
+    store.handleState(baseState({ madeCanasta: false }))
+    expect(store.myMadeCanasta).toBe(false)
+
+    store.handleState(baseState({ madeCanasta: true }))
+    expect(store.myMadeCanasta).toBe(true)
+  })
+
   it('handNumber reflects the current hand', () => {
     const store = useGameStore()
     store.handleState(baseState({ handNumber: 3 }))

@@ -3,11 +3,13 @@ import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import { useSortableHand } from '@/composables/useSortableHand'
+import { handHalfWidthExpr } from '@/utils/handLayout'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
 import OtherPlayers from '@/components/board/OtherPlayers.vue'
 import OpponentMelds from '@/components/board/OpponentMelds.vue'
 import TeamMelds from '@/components/board/TeamMelds.vue'
+import MyFoot from '@/components/board/MyFoot.vue'
 import Button from '@/components/Button.vue'
 
 // instanceId defaults to the main (single-player) store instance when
@@ -33,6 +35,14 @@ const { orderedCards: handCards, sort: sortHandNow, moveCard } = useSortableHand
 function onSortClick(): void {
   sortHandNow(settings.sortMethod)
 }
+
+// Sits just right of the hand's own right edge — see MyFoot.vue's
+// mirror-image left-edge placement for the reasoning (hand is
+// horizontally centered at 50vw; this tracks its half-width so it moves
+// in/out as cards are drawn/discarded rather than sitting fixed).
+const sortButtonLeftOffset = computed(
+  () => `calc(50vw + ${handHalfWidthExpr(handCards.value.length)} + 1rem)`,
+)
 
 // The move model is "select card(s) in hand, then click where they go"
 // (e.g. the discard pile). Selection lives here, not inside PlayerHand,
@@ -85,7 +95,8 @@ function clearSelection(): void {
     @toggle="toggleCardSelection"
     @reorder="moveCard"
   />
-  <div class="fixed bottom-8 right-8">
+  <MyFoot :game-store="gameStore" />
+  <div class="fixed bottom-4" :style="{ left: sortButtonLeftOffset }">
     <Button label="Sort" @click="onSortClick" />
   </div>
 </template>

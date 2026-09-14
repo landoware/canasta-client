@@ -7,10 +7,17 @@
 // capped and no longer reflects the real hand size.
 import { computed } from 'vue'
 import PlayingCard from './PlayingCard.vue'
+import FootPile from './FootPile.vue'
+import {
+  otherHandHalfWidthExpr,
+  otherHandHalfHeightExpr,
+  footRotationOvershootExpr,
+} from '@/utils/handLayout'
 
 const props = defineProps<{
   name: string
   handLength: number
+  hasFoot: boolean
   isCurrentTurn: boolean
   position: 'top' | 'left' | 'right'
   // Demo-only: lets a click on this player's name request switching to
@@ -55,6 +62,53 @@ const cardLayouts = computed(() => {
 })
 
 const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
+
+// Each seat's own "left" (foot placement, per the user's request) lands
+// in a different screen corner once you account for facing the table
+// center: top (partner, facing the local player) -> screen top-right;
+// left seat (facing right, toward center) -> screen top-left, above
+// their hand; right seat (facing left) -> screen bottom-right, below
+// their hand. Card rotation is perpendicular to the hand's own
+// ROTATE_DEG — 90deg for the unrotated top hand, 0deg for the
+// already-rotated left/right hands (their 90deg + 90deg wraps back to
+// an upright-equivalent 180deg, visually identical to 0 for a
+// symmetric card back).
+//
+// One axis per seat stays a fixed screen-edge anchor (footFixedClass);
+// the other tracks that seat's own hand size, the same way MyFoot.vue
+// hugs the local hand's edge, so it moves in/out as the hand
+// grows/shrinks instead of sitting at a static corner. Past
+// FAN_THRESHOLD the hand stops fanning wider and collapses to a capped
+// stack (see isFanned/stackLayers), so the tracked count is clamped
+// there too — otherwise the foot would keep chasing a hypothetical
+// wider fan that's no longer actually on screen.
+const footFixedClass: Record<'top' | 'left' | 'right', string> = {
+  top: 'top-4',
+  left: 'left-4',
+  right: 'right-4',
+}
+const footRotateDeg = computed(() => (props.position === 'top' ? 90 : 0))
+
+const footHandCount = computed(() => Math.min(props.handLength, FAN_THRESHOLD))
+
+const footDynamicStyle = computed(() => {
+  const count = footHandCount.value
+  if (props.position === 'top') {
+    // Hand is horizontally centered at 50vw (see the template below,
+    // same w-full max-w-5xl convention as PlayerHand.vue) — this foot
+    // sits GAP past its right edge, plus the 90deg rotation's overshoot
+    // (see footRotationOvershootExpr).
+    return {
+      left: `calc(50vw + ${otherHandHalfWidthExpr(count)} + ${footRotationOvershootExpr()} + 1rem)`,
+    }
+  }
+  // left/right seats' hands are vertically centered at 50vh instead
+  // (h-full max-h-[36rem] + items-center) and fan along the Y axis, so
+  // it's their half-*height* that matters, tracked via bottom/top
+  // instead of left/right. Neither is rotated, so no overshoot term.
+  const offset = `calc(50vh + ${otherHandHalfHeightExpr(count)} + 1rem)`
+  return props.position === 'left' ? { bottom: offset } : { top: offset }
+})
 </script>
 
 <template>
@@ -161,4 +215,8 @@ const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
   >
     {{ name }}
   </button>
+
+  <div class="fixed" :class="footFixedClass[position]" :style="footDynamicStyle">
+    <FootPile :visible="hasFoot" :rotate-deg="footRotateDeg" />
+  </div>
 </template>

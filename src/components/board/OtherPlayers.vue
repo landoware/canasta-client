@@ -26,6 +26,7 @@ function playerAt(seatIndex: number) {
   return {
     name: state?.name ?? '',
     handLength: state?.handLength ?? 0,
+    hasFoot: state?.hasFoot ?? false,
     isCurrentTurn: currentPlayer.value === seatIndex,
   }
 }
@@ -40,6 +41,7 @@ const right = computed(() => playerAt(seats.value.right))
     position="top"
     :name="partner.name"
     :hand-length="partner.handLength"
+    :has-foot="partner.hasFoot"
     :is-current-turn="partner.isCurrentTurn"
     :clickable="clickableNames"
     @select="emit('select-seat', seats.partner)"
@@ -48,6 +50,7 @@ const right = computed(() => playerAt(seats.value.right))
     position="left"
     :name="left.name"
     :hand-length="left.handLength"
+    :has-foot="left.hasFoot"
     :is-current-turn="left.isCurrentTurn"
     :clickable="clickableNames"
     @select="emit('select-seat', seats.left)"
@@ -56,6 +59,7 @@ const right = computed(() => playerAt(seats.value.right))
     position="right"
     :name="right.name"
     :hand-length="right.handLength"
+    :has-foot="right.hasFoot"
     :is-current-turn="right.isCurrentTurn"
     :clickable="clickableNames"
     @select="emit('select-seat', seats.right)"
