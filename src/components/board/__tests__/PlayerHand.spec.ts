@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import PlayerHand from '../PlayerHand.vue'
 import { Hearts, Diamonds, Clubs, Four, Five, Six } from '@/types/canasta'
@@ -26,6 +27,10 @@ async function firePointer(
 }
 
 describe('PlayerHand', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('renders one button per card', () => {
     const wrapper = mount(PlayerHand, { props: { cards, selectedIds: new Set<number>() } })
     expect(wrapper.findAll('button')).toHaveLength(3)

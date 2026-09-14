@@ -129,6 +129,35 @@ export const isValidAddToMeld = (
   return true
 }
 
+// Mirrors internal/canasta/moves.go's Game.BurnCards exactly, including
+// checking wildcard count cumulatively across the whole selection being
+// burned (seeded from the canasta's own existing cards, since the
+// generated Canasta type has no wildCount field the way Meld does). The
+// server has no rollback — a partially-invalid batch can mutate the
+// canasta before erroring on a later card — so this validates the whole
+// selection up front, never just per-card. Only used to decide when to
+// show the burn affordance client-side; the server remains authoritative.
+export const isValidBurn = (
+  canasta: { rank: Rank; natural: boolean; cards: Card[] },
+  cards: Card[],
+): boolean => {
+  if (cards.length === 0) return false
+
+  let wildCount = canasta.cards.filter(isWildCard).length
+  for (const card of cards) {
+    const wild = isWildCard(card)
+    if (wild && canasta.natural) return false
+    if (card.rank !== canasta.rank && !wild) return false
+    if (canasta.rank === Three) return false
+    if (canasta.rank === Seven && wild) return false
+    if (wild) {
+      wildCount++
+      if (wildCount > 3) return false
+    }
+  }
+  return true
+}
+
 // Mirrors internal/canasta/canasta.go's meldRequirements — total staged
 // meld points needed to go down, keyed by hand number. The game only ever
 // runs hands 1-4 (see Game.EndHand); Infinity is a defensive fallback so

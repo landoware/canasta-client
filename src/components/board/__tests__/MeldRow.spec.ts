@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
 import MeldRow from '../MeldRow.vue'
 import PlayingCard from '../PlayingCard.vue'
 import { Hearts, Diamonds, Clubs, Spades, Four, Five, Six, Two } from '@/types/canasta'
@@ -24,6 +26,10 @@ function stubTileRect(rect: Partial<DOMRect>): void {
 }
 
 describe('MeldRow', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('renders one card-shaped group per meld/canasta, each with its own cards', () => {
     const groups = [
       {
@@ -304,6 +310,35 @@ describe('MeldRow', () => {
       expect(wrapper.findAllComponents(PlayingCard)).toHaveLength(3 + 1 + 1)
     })
 
+    it('closes when a click lands anywhere else in the document', async () => {
+      const wrapper = mount(MeldRow, { props: { groups }, attachTo: document.body })
+      const [firstTile] = wrapper.findAll('button')
+
+      await firstTile!.trigger('click')
+      expect(wrapper.findAllComponents(PlayingCard)).toHaveLength(4 + 3)
+
+      document.body.click()
+      await nextTick()
+
+      expect(wrapper.findAllComponents(PlayingCard)).toHaveLength(4)
+
+      wrapper.unmount()
+    })
+
+    it('does not close on the same click that opens or switches an expansion', async () => {
+      const wrapper = mount(MeldRow, { props: { groups }, attachTo: document.body })
+      const [firstTile, secondTile] = wrapper.findAll('button')
+
+      await firstTile!.trigger('click')
+      expect(wrapper.findAllComponents(PlayingCard)).toHaveLength(4 + 3)
+
+      await secondTile!.trigger('click')
+      // Switched straight to the second meld's own expansion, not closed.
+      expect(wrapper.findAllComponents(PlayingCard)).toHaveLength(3 + 1 + 1)
+
+      wrapper.unmount()
+    })
+
     it('does not expand an addable tile — it emits select-group instead', async () => {
       const wrapper = mount(MeldRow, { props: { groups, clickableGroupIds: new Set([1]) } })
       const [firstTile] = wrapper.findAll('button')
@@ -398,6 +433,84 @@ describe('MeldRow', () => {
         // Below the tile's own bottom edge (144) plus the 16px margin.
         expect(expandedStyle()).toContain('top: 160px')
       })
+    })
+  })
+
+  describe('compact prop forwarding', () => {
+    const groups = [
+      {
+        id: 1,
+        cards: [
+          { id: 1, suit: Hearts, rank: Four },
+          { id: 2, suit: Diamonds, rank: Four },
+          { id: 3, suit: Clubs, rank: Four },
+        ],
+      },
+    ]
+
+    it('does not force compact rendering by default', () => {
+      const wrapper = mount(MeldRow, { props: { groups } })
+
+      expect(wrapper.findComponent(PlayingCard).props('compact')).toBeFalsy()
+    })
+
+    it('forwards compact to every stacked card when compact is true', () => {
+      const wrapper = mount(MeldRow, { props: { groups, compact: true } })
+
+      expect(
+        wrapper.findAllComponents(PlayingCard).every((c) => c.props('compact') === true),
+      ).toBe(true)
+    })
+
+    it('does not force compact in the expanded Teleport fan view', async () => {
+      document.querySelectorAll('.fixed').forEach((el) => el.remove())
+
+      const wrapper = mount(MeldRow, { props: { groups, compact: true } })
+      await wrapper.find('button').trigger('click')
+
+      // findAllComponents walks the virtual component tree, so it finds
+      // both the stacked tile's cards and the Teleport-relocated expanded
+      // ones — the stacked cards come first (groups[0].cards.length of
+      // them), the expanded fan's cards immediately after.
+      const cardCount = groups[0]!.cards.length
+      const allCards = wrapper.findAllComponents(PlayingCard)
+      const stacked = allCards.slice(0, cardCount)
+      const expanded = allCards.slice(cardCount)
+
+      expect(stacked.every((c) => c.props('compact') === true)).toBe(true)
+      expect(expanded).toHaveLength(cardCount)
+      expect(expanded.every((c) => c.props('compact') !== true)).toBe(true)
+
+      wrapper.unmount()
+      document.querySelectorAll('.fixed').forEach((el) => el.remove())
+    })
+  })
+
+  describe('counterRotate', () => {
+    const groups = [{ id: 1, cards: [{ id: 1, suit: Hearts, rank: Four }] }]
+
+    function countLabel(wrapper: ReturnType<typeof mount>) {
+      return wrapper.findAll('span').find((s) => s.text() === '1')!
+    }
+
+    it('does not rotate the count label by default', () => {
+      const wrapper = mount(MeldRow, { props: { groups } })
+      const classes = countLabel(wrapper).classes()
+
+      expect(classes).not.toContain('rotate-90')
+      expect(classes).not.toContain('-rotate-90')
+    })
+
+    it('counter-rotates the count label the opposite way from a left ancestor rotation', () => {
+      const wrapper = mount(MeldRow, { props: { groups, counterRotate: 'left' } })
+
+      expect(countLabel(wrapper).classes()).toContain('rotate-90')
+    })
+
+    it('counter-rotates the count label the opposite way from a right ancestor rotation', () => {
+      const wrapper = mount(MeldRow, { props: { groups, counterRotate: 'right' } })
+
+      expect(countLabel(wrapper).classes()).toContain('-rotate-90')
     })
   })
 })

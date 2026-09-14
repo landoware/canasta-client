@@ -1,9 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import OtherPlayerHand from '../OtherPlayerHand.vue'
 import PlayingCard from '../PlayingCard.vue'
 
 describe('OtherPlayerHand', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('fans one face-down card per card in a 15-or-fewer hand', () => {
     const wrapper = mount(OtherPlayerHand, {
       props: { name: 'Bob', handLength: 11, isCurrentTurn: false, position: 'top' },

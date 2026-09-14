@@ -98,4 +98,31 @@ describe('OpponentMelds', () => {
       expect(row.props('groups')).toEqual([])
     })
   })
+
+  it('rotates the melds band to match the left opponent and the canastas band to match the right opponent', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState())
+
+    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const bands = wrapper.findAll('.fixed.inset-y-0')
+
+    // Scoped to the wrapper div specifically (not just any descendant) —
+    // the count label inside also carries a rotate class of its own (the
+    // opposite one, to counter-rotate back upright), which would
+    // otherwise make a broader descendant search ambiguous.
+    expect(bands[0]!.find('div.-rotate-90').exists()).toBe(true)
+    expect(bands[1]!.find('div.rotate-90').exists()).toBe(true)
+    expect(bands[1]!.find('div.-rotate-90').exists()).toBe(false)
+  })
+
+  it('tells each row which way to counter-rotate its count label back upright', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState())
+
+    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
+
+    expect(meldsRow!.props('counterRotate')).toBe('left')
+    expect(canastasRow!.props('counterRotate')).toBe('right')
+  })
 })

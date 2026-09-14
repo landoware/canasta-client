@@ -117,9 +117,12 @@ const stackLayers = computed(() => Math.min(STACK_DEPTH, props.handLength))
       'top-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*1065/769*0.5+0.5rem)]':
         position === 'top',
       'top-1/2 -translate-y-1/2': position !== 'top',
-      'left-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)] -rotate-90':
+      // Unlike the cards and name, this stays upright rather than
+      // rotating to match the side — rotated, a 2-digit count reads as
+      // a near-illegible vertical stack of digits at this size.
+      'left-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)]':
         position === 'left',
-      'right-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)] rotate-90':
+      'right-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*0.5+0.5rem)]':
         position === 'right',
     }"
   >

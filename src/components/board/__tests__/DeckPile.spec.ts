@@ -1,9 +1,14 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import DeckPile from '../DeckPile.vue'
 import PlayingCard from '../PlayingCard.vue'
 
 describe('DeckPile', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('emits draw on click when enabled', async () => {
     const wrapper = mount(DeckPile, { props: { count: 52 } })
     await wrapper.find('button').trigger('click')

@@ -1,10 +1,15 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { createPinia, setActivePinia } from 'pinia'
 import DiscardPile from '../DiscardPile.vue'
 import PlayingCard from '../PlayingCard.vue'
 import { Hearts, Seven } from '@/types/canasta'
 
 describe('DiscardPile', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
   it('renders the top card and count when present', () => {
     const topCard = { id: 1, suit: Hearts, rank: Seven }
     const wrapper = mount(DiscardPile, { props: { topCard, count: 5 } })

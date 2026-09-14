@@ -8,7 +8,7 @@ import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useSettingsStore, MeldsPositionTop } from '@/stores/settings'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing, PhasePlaying, Hearts, Diamonds, Clubs, Four, Three } from '@/types/canasta'
+import { PhaseDrawing, PhasePlaying, Hearts, Diamonds, Clubs, Four, Eight, Three } from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -354,6 +354,68 @@ describe('TeamMelds', () => {
       props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected, so meld 1 isn't clickable
     })
     wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
+
+    expect(send).not.toHaveBeenCalled()
+    expect(wrapper.emitted('melded')).toBeUndefined()
+  })
+
+  it('marks a canasta clickable when the selection is a valid burn for it', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhasePlaying }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) }, // a Four, matches the default canasta
+    })
+    const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+    expect(canastasRow.props('clickableGroupIds')).toEqual(new Set([2]))
+  })
+
+  it('hides canasta clickability when the selection does not match the canasta rank', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhasePlaying, hand: { 201: { id: 201, suit: Hearts, rank: Eight } } }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([201]) },
+    })
+    const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+    expect(canastasRow.props('clickableGroupIds')).toEqual(new Set())
+  })
+
+  it('hides canasta clickability when it is not this seat\'s turn to play', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhaseDrawing }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+    expect(canastasRow.props('clickableGroupIds')).toEqual(new Set())
+  })
+
+  it('burns through the real store action and emits melded when the canasta tile is selected', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhasePlaying }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set([101]) },
+    })
+    wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('select-group', 2)
+
+    expect(send).toHaveBeenCalledWith('burn_cards', { cardIds: [101], canastaId: 2 })
+    expect(wrapper.emitted('melded')).toHaveLength(1)
+  })
+
+  it('ignores select-group for a canasta id that is not actually clickable', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(baseState({ phase: PhasePlaying }))
+
+    const wrapper = mount(TeamMelds, {
+      props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected, so canasta 2 isn't clickable
+    })
+    wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('select-group', 2)
 
     expect(send).not.toHaveBeenCalled()
     expect(wrapper.emitted('melded')).toBeUndefined()

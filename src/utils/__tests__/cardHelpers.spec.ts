@@ -3,6 +3,7 @@ import {
   cardPointValue,
   isValidNewMeld,
   isValidAddToMeld,
+  isValidBurn,
   isValidRedThreePlay,
   meldsPointTotal,
   meetsGoDownRequirement,
@@ -197,6 +198,81 @@ describe('isValidAddToMeld', () => {
   it('an all-wild meld keeps accepting wildcards well past what would be the normal cap', () => {
     const meld = { rank: 14, wildCount: 10 } // Wild
     expect(isValidAddToMeld(meld, [{ id: 1, suit: Hearts, rank: Joker }])).toBe(true)
+  })
+})
+
+describe('isValidBurn', () => {
+  it('accepts a card matching the canasta rank', () => {
+    const canasta = { rank: Four, natural: true, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Four }])).toBe(true)
+  })
+
+  it('rejects a card of a different, non-wild rank', () => {
+    const canasta = { rank: Four, natural: true, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Eight }])).toBe(false)
+  })
+
+  it('accepts a wildcard onto a non-natural canasta', () => {
+    const canasta = { rank: Four, natural: false, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Two }])).toBe(true)
+  })
+
+  it('rejects a wildcard onto a natural canasta', () => {
+    const canasta = { rank: Four, natural: true, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Two }])).toBe(false)
+  })
+
+  it('rejects any burn onto a threes canasta', () => {
+    const canasta = { rank: Three, natural: true, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Three }])).toBe(false)
+  })
+
+  it('rejects a wildcard onto a sevens canasta', () => {
+    const canasta = { rank: Seven, natural: false, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Two }])).toBe(false)
+  })
+
+  it('accepts a seven onto a sevens canasta', () => {
+    const canasta = { rank: Seven, natural: true, cards: [] }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Seven }])).toBe(true)
+  })
+
+  it('rejects a wildcard that would push the canasta past 3 wilds total', () => {
+    const canasta = {
+      rank: Four,
+      natural: false,
+      cards: [
+        { id: 90, suit: Hearts, rank: Two },
+        { id: 91, suit: Diamonds, rank: Two },
+        { id: 92, suit: Clubs, rank: Joker },
+      ],
+    }
+    expect(isValidBurn(canasta, [{ id: 1, suit: Hearts, rank: Two }])).toBe(false)
+  })
+
+  it('allows the 3rd wildcard but not a 4th, counted cumulatively across the batch', () => {
+    const canasta = {
+      rank: Four,
+      natural: false,
+      cards: [{ id: 90, suit: Hearts, rank: Two }],
+    }
+    const twoWilds = [
+      { id: 1, suit: Hearts, rank: Two },
+      { id: 2, suit: Diamonds, rank: Joker },
+    ]
+    expect(isValidBurn(canasta, twoWilds)).toBe(true) // 1 + 2 = 3, ok
+
+    const threeWilds = [
+      { id: 1, suit: Hearts, rank: Two },
+      { id: 2, suit: Diamonds, rank: Joker },
+      { id: 3, suit: Clubs, rank: Two },
+    ]
+    expect(isValidBurn(canasta, threeWilds)).toBe(false) // 1 + 3 = 4, over cap
+  })
+
+  it('rejects an empty selection', () => {
+    const canasta = { rank: Four, natural: true, cards: [] }
+    expect(isValidBurn(canasta, [])).toBe(false)
   })
 })
 

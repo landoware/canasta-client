@@ -12,11 +12,13 @@ import { useSettingsStore, MeldsPositionBottom } from '@/stores/settings'
 import {
   isValidNewMeld,
   isValidAddToMeld,
+  isValidBurn,
   isValidRedThreePlay,
   isRedThree,
   meetsGoDownRequirement,
 } from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
+import FitToArea from './FitToArea.vue'
 import Button from '@/components/Button.vue'
 
 const props = defineProps<{ gameStore: GameStore; selectedCardIds: Set<number> }>()
@@ -59,6 +61,25 @@ const addableMeldIds = computed(() => {
 function onSelectMeld(meldId: number): void {
   if (!addableMeldIds.value.has(meldId)) return
   props.gameStore.addToMeld([...props.selectedCardIds], meldId)
+  emit('melded')
+}
+
+// Burning uses the same "select cards, click the target" shape as
+// add-to-meld, but against the team's completed canastas — see
+// BurnCards in moves.go. Unlike myTeamMelds (staging pre-go-down,
+// official after), myTeamCanastas is always the team's real,
+// already-scored canastas.
+const burnableCanastaIds = computed(() => {
+  if (!props.gameStore.canPlay) return new Set<number>()
+  const ids = props.gameStore.myTeamCanastas
+    .filter((canasta) => isValidBurn(canasta, selectedCards.value))
+    .map((canasta) => canasta.id)
+  return new Set(ids)
+})
+
+function onSelectCanasta(canastaId: number): void {
+  if (!burnableCanastaIds.value.has(canastaId)) return
+  props.gameStore.burnCards([...props.selectedCardIds], canastaId)
   emit('melded')
 }
 
@@ -153,24 +174,32 @@ watch(
     class="fixed inset-x-0 flex items-center justify-center gap-4 pointer-events-none"
     :class="meldsAtBottom ? bottomPositionClass : topPositionClass"
   >
-    <MeldRow
-      :groups="gameStore.myTeamMelds"
-      :show-create-affordance="canCreateMeld"
-      :dimmed="!gameStore.hasGoneDown"
-      :clickable-group-ids="addableMeldIds"
-      @create="onCreateMeld"
-      @select-group="onSelectMeld"
-    />
+    <FitToArea max-width="min(90vw, 64rem)" max-height="clamp(10rem, 24vh, 20rem)" v-slot="{ compact }">
+      <MeldRow
+        :groups="gameStore.myTeamMelds"
+        :show-create-affordance="canCreateMeld"
+        :dimmed="!gameStore.hasGoneDown"
+        :clickable-group-ids="addableMeldIds"
+        :compact="compact"
+        @create="onCreateMeld"
+        @select-group="onSelectMeld"
+      />
+    </FitToArea>
     <Button v-if="canGoDown" label="Go down" class="pointer-events-auto" @click="onGoDown" />
   </div>
   <div
     class="fixed inset-x-0 flex items-center justify-center pointer-events-none"
     :class="meldsAtBottom ? topPositionClass : bottomPositionClass"
   >
-    <MeldRow
-      :groups="[...gameStore.myTeamCanastas, ...redThreeGroups]"
-      :show-create-affordance="canPlayRedThree"
-      @create="onPlayRedThree"
-    />
+    <FitToArea max-width="min(90vw, 64rem)" max-height="clamp(10rem, 24vh, 20rem)" v-slot="{ compact }">
+      <MeldRow
+        :groups="[...gameStore.myTeamCanastas, ...redThreeGroups]"
+        :show-create-affordance="canPlayRedThree"
+        :clickable-group-ids="burnableCanastaIds"
+        :compact="compact"
+        @create="onPlayRedThree"
+        @select-group="onSelectCanasta"
+      />
+    </FitToArea>
   </div>
 </template>

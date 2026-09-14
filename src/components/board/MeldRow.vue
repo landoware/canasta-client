@@ -4,11 +4,12 @@
 // stacking, not a wide fan), sized the same as the deck/discard piles,
 // with its card count shown underneath (same treatment as DiscardPile).
 // Optionally appends a dashed "create meld here" tile, and/or makes
-// individual groups clickable "add selected cards here" targets (melds
-// row only — see TeamMelds.vue for both). Clicking a group that ISN'T
-// currently a valid add-to-meld target instead toggles an expanded,
-// fanned-out view of all its cards (one at a time) — see onTileClick.
-import { ref } from "vue";
+// individual groups clickable "add selected cards here" targets — used
+// on both the melds row, for add-to-meld, and the canastas row, for
+// burning (see TeamMelds.vue for both). Clicking a group that ISN'T
+// currently a valid target instead toggles an expanded, fanned-out view
+// of all its cards (one at a time) — see onTileClick.
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import type { Card } from "@/types/canasta";
 import { isRed, isBlack, isWildCard } from "@/utils/cardHelpers";
 import PlayingCard from "./PlayingCard.vue";
@@ -25,6 +26,19 @@ const props = defineProps<{
   // Group ids that currently accept the player's selected cards (via
   // add-to-meld) — rendered as a highlighted, clickable tile.
   clickableGroupIds?: Set<number>;
+  // Forwarded to each stacked tile's PlayingCards (never the expanded
+  // Teleport fan below, which stays full detail) — set by FitToArea
+  // when it has to shrink this row below the user's configured scale,
+  // since raster card art blurs at that point regardless of the global
+  // cardScale setting.
+  compact?: boolean;
+  // OpponentMelds wraps this whole row in a -rotate-90/rotate-90
+  // ancestor to match that opponent's orientation (see its own
+  // comment) — the card art rotating along with it reads fine, but the
+  // card-count label needs to counter-rotate back to upright, same
+  // fix as OtherPlayerHand's own hand count. 'left'/'right' name which
+  // ancestor rotation to cancel; omit for an unrotated row (TeamMelds).
+  counterRotate?: 'left' | 'right';
 }>();
 const emit = defineEmits<{ create: []; "select-group": [id: number] }>();
 
@@ -95,21 +109,41 @@ function computeExpandedStyle(tileEl: HTMLElement, cardCount: number): ExpandedS
   return { left: `${centerX}px`, top: `${top}px` };
 }
 
+function closeExpanded(): void {
+  expandedId.value = null;
+  expandedStyle.value = null;
+}
+
 function onTileClick(groupId: number, event: MouseEvent): void {
   if (isClickable(groupId)) {
     emit("select-group", groupId);
     return;
   }
   if (expandedId.value === groupId) {
-    expandedId.value = null;
-    expandedStyle.value = null;
+    closeExpanded();
     return;
   }
   const group = props.groups.find((g) => g.id === groupId);
   if (!group) return;
+  // Stops this same click from also reaching the document-level
+  // listener below, which would otherwise immediately collapse the
+  // expansion this click just opened/switched to (a native click event
+  // bubbles synchronously, before Vue re-renders).
+  event.stopPropagation();
   expandedStyle.value = computeExpandedStyle(event.currentTarget as HTMLElement, group.cards.length);
   expandedId.value = groupId;
 }
+
+// Clicking anywhere else on the screen closes an open expansion — the
+// standard "backdrop click" pattern. Doesn't fire for the click that
+// opens/switches an expansion in the first place (see stopPropagation
+// above), so switching directly between tiles still works in one click.
+function handleDocumentClick(): void {
+  if (expandedId.value !== null) closeExpanded();
+}
+
+onMounted(() => document.addEventListener("click", handleDocumentClick));
+onBeforeUnmount(() => document.removeEventListener("click", handleDocumentClick));
 </script>
 
 <template>
@@ -126,10 +160,13 @@ function onTileClick(groupId: number, event: MouseEvent): void {
            tile, but would just wash out an already-overlapping fan of
            full-size cards meant to be read clearly. -->
       <div class="absolute inset-0" :class="dimmed ? 'opacity-50' : ''">
-        <PlayingCard v-for="(card, i) in stackOrder(group.cards)" :key="card.id" :card="card"
+        <PlayingCard v-for="(card, i) in stackOrder(group.cards)" :key="card.id" :card="card" :compact="compact"
           class="!absolute !left-0 !top-0"
           :style="{ transform: `translate(${i * STEP_PX}px, ${-(i * STEP_PX)}px)`, zIndex: i }" />
-        <span class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-rs-bold text-card-white">{{
+        <span
+          class="absolute -bottom-6 left-1/2 -translate-x-1/2 font-rs-bold text-card-white"
+          :class="{ 'rotate-90': counterRotate === 'left', '-rotate-90': counterRotate === 'right' }"
+          >{{
           group.cards.length
           }}</span>
       </div>
