@@ -33,8 +33,8 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
     otherRedThrees: [],
     seatIndex: 0,
     currentPlayer: 0,
-    isYourTurn: true,
-    phase: PhasePlaying,
+    isYourTurn: false,
+    phase: PhaseDrawing,
     handNumber: 1,
     gameOver: false,
     canGoOut: false,
@@ -75,41 +75,9 @@ describe('MyFoot', () => {
     expect(pile.props('back')).toBe('blue')
   })
 
-  it('is not dimmed once madeCanasta is true and canastaMadeThisTurn has cleared', () => {
-    const gameStore = useGameStore()
-    gameStore.handleState(
-      baseState({ hasFoot: true, madeCanasta: true, canastaMadeThisTurn: false }),
-    )
-
-    const wrapper = mount(MyFoot, { props: { gameStore } })
-
-    expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(false)
-  })
-
-  it('stays dimmed on the same turn the first canasta was made, even though madeCanasta is already true', () => {
-    const gameStore = useGameStore()
-    gameStore.handleState(
-      baseState({ hasFoot: true, madeCanasta: true, canastaMadeThisTurn: true }),
-    )
-
-    const wrapper = mount(MyFoot, { props: { gameStore } })
-
-    expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(true)
-  })
-
-  it('sends pick_up_foot when the pile is picked up and eligible', () => {
-    const gameStore = useGameStore()
-    gameStore.handleState(baseState({ hasFoot: true, madeCanasta: true, phase: PhasePlaying }))
-
-    const wrapper = mount(MyFoot, { props: { gameStore } })
-    wrapper.findComponent(FootPile).vm.$emit('pick-up')
-
-    expect(send).toHaveBeenCalledWith('pick_up_foot', {})
-  })
-
   it('ignores pick-up when madeCanasta is false', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ hasFoot: true, madeCanasta: false, phase: PhasePlaying }))
+    gameStore.handleState(baseState({ hasFoot: true, madeCanasta: false }))
 
     const wrapper = mount(MyFoot, { props: { gameStore } })
     wrapper.findComponent(FootPile).vm.$emit('pick-up')
@@ -117,48 +85,85 @@ describe('MyFoot', () => {
     expect(send).not.toHaveBeenCalled()
   })
 
-  it('ignores pick-up when it is not this seat\'s turn to play', () => {
-    const gameStore = useGameStore()
-    gameStore.handleState(baseState({ hasFoot: true, madeCanasta: true, phase: PhaseDrawing }))
-
-    const wrapper = mount(MyFoot, { props: { gameStore } })
-    wrapper.findComponent(FootPile).vm.$emit('pick-up')
-
-    expect(send).not.toHaveBeenCalled()
-  })
-
-  it('ignores pick-up on the same turn the first canasta was made', () => {
+  it('stays dimmed and ignores pick-up on the same turn the first canasta was made, even off-turn', () => {
     const gameStore = useGameStore()
     gameStore.handleState(
       baseState({
         hasFoot: true,
         madeCanasta: true,
         canastaMadeThisTurn: true,
-        phase: PhasePlaying,
+        isYourTurn: false, // this alone would otherwise be freely pickable
       }),
     )
 
     const wrapper = mount(MyFoot, { props: { gameStore } })
-    wrapper.findComponent(FootPile).vm.$emit('pick-up')
+    expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(true)
 
+    wrapper.findComponent(FootPile).vm.$emit('pick-up')
     expect(send).not.toHaveBeenCalled()
   })
 
-  it('sends pick_up_foot once canastaMadeThisTurn has cleared', () => {
-    const gameStore = useGameStore()
-    gameStore.handleState(
-      baseState({
-        hasFoot: true,
-        madeCanasta: true,
-        canastaMadeThisTurn: false,
-        phase: PhasePlaying,
-      }),
-    )
+  // Turn timing (once earned and past the first-canasta-turn block) —
+  // mirrors PickUpFoot's own rule in moves.go exactly: a free action on
+  // any other player's turn, but blocked on this player's own turn once
+  // they've drawn, until they discard.
+  describe('turn timing', () => {
+    it('is not dimmed and sends pick_up_foot when it is not this player\'s turn, even mid-play', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          hasFoot: true,
+          madeCanasta: true,
+          canastaMadeThisTurn: false,
+          isYourTurn: false,
+          phase: PhasePlaying,
+        }),
+      )
 
-    const wrapper = mount(MyFoot, { props: { gameStore } })
-    wrapper.findComponent(FootPile).vm.$emit('pick-up')
+      const wrapper = mount(MyFoot, { props: { gameStore } })
+      expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(false)
 
-    expect(send).toHaveBeenCalledWith('pick_up_foot', {})
+      wrapper.findComponent(FootPile).vm.$emit('pick-up')
+      expect(send).toHaveBeenCalledWith('pick_up_foot', {})
+    })
+
+    it('is not dimmed and sends pick_up_foot on this player\'s own turn before they\'ve drawn', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          hasFoot: true,
+          madeCanasta: true,
+          canastaMadeThisTurn: false,
+          isYourTurn: true,
+          phase: PhaseDrawing,
+        }),
+      )
+
+      const wrapper = mount(MyFoot, { props: { gameStore } })
+      expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(false)
+
+      wrapper.findComponent(FootPile).vm.$emit('pick-up')
+      expect(send).toHaveBeenCalledWith('pick_up_foot', {})
+    })
+
+    it('is dimmed and ignores pick-up on this player\'s own turn after they\'ve drawn', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          hasFoot: true,
+          madeCanasta: true,
+          canastaMadeThisTurn: false,
+          isYourTurn: true,
+          phase: PhasePlaying,
+        }),
+      )
+
+      const wrapper = mount(MyFoot, { props: { gameStore } })
+      expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(true)
+
+      wrapper.findComponent(FootPile).vm.$emit('pick-up')
+      expect(send).not.toHaveBeenCalled()
+    })
   })
 
   it('positions itself relative to the hand\'s current size, hugging the left edge', () => {

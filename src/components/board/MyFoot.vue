@@ -6,6 +6,7 @@
 // drawn/discarded/picked up, rather than sitting at a fixed screen spot.
 import { computed } from 'vue'
 import type { GameStore } from '@/stores/game'
+import { PhasePlaying } from '@/types/canasta'
 import { handHalfWidthExpr, footRotationOvershootExpr } from '@/utils/handLayout'
 import FootPile from './FootPile.vue'
 
@@ -29,26 +30,36 @@ const rightOffset = computed(
     `calc(50vw + ${handHalfWidthExpr(props.gameStore.myHand.length)} + ${footRotationOvershootExpr()} + ${GAP})`,
 )
 
-// Greyed out until earned (myMadeCanasta) and, even once earned, for
-// the remainder of the turn the first canasta was made on — see
-// PickUpFoot in moves.go, which rejects a pick-up attempt during that
-// same-turn window. Deliberately doesn't factor in canPlay: that's a
-// momentary "is it my turn right now" thing that would otherwise flash
-// grey/ungrey every turn, whereas this is a one-time, persistent
-// "have I earned this yet" state.
-const dimmed = computed(
-  () => !props.gameStore.myMadeCanasta || props.gameStore.myCanastaMadeThisTurn,
+// Picking up your foot is a free action on any OTHER player's turn —
+// unlike every other move, it's not gated on canPlay/isMyTurn at all.
+// The only turn-based restriction is the opposite of usual: on this
+// player's OWN turn, it's blocked once they've drawn (PhasePlaying)
+// and stays blocked until they discard (ending their turn) — see
+// PickUpFoot in moves.go, which enforces the identical rule.
+const blockedThisTurn = computed(
+  () => props.gameStore.isMyTurn && props.gameStore.currentPhase === PhasePlaying,
 )
 
-// Re-checked here rather than trusting FootPile's own dimmed styling,
-// for the same reason dimmed above skips canPlay — an actual pick-up
-// attempt still needs it to be this player's turn to play (the server
-// enforces the same — see PickUpFoot/dispatch.go).
+// Greyed out until earned (myMadeCanasta), for the remainder of the
+// turn the first canasta was made on (myCanastaMadeThisTurn), and
+// during the above same-turn-after-drawing window — all three are
+// genuine, meaningful restrictions (not just "it's not my turn right
+// now"), so unlike a typical canPlay-gated action, tracking this
+// turn-by-turn here is the correct feedback for why a click wouldn't
+// do anything.
+const dimmed = computed(
+  () =>
+    !props.gameStore.myMadeCanasta ||
+    props.gameStore.myCanastaMadeThisTurn ||
+    blockedThisTurn.value,
+)
+
+// Re-checked here rather than trusting FootPile's own dimmed styling.
 function onPickUp(): void {
   if (
     props.gameStore.myMadeCanasta &&
     !props.gameStore.myCanastaMadeThisTurn &&
-    props.gameStore.canPlay
+    !blockedThisTurn.value
   ) {
     props.gameStore.pickUpFoot()
   }
