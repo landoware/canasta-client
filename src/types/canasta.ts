@@ -29,6 +29,14 @@ export interface Player {
   foot: Card[];
   stagingMelds: Meld[];
   madeCanasta: boolean;
+  /**
+   * True from the moment a player completes their *first* canasta
+   * until they discard on that same turn — blocks PickUpFoot for
+   * that window (see moves.go). Cleared in Discard, so it's false
+   * again well before this player can act again (turn passes away
+   * from them at Discard).
+   */
+  canastaMadeThisTurn: boolean;
 }
 export type PlayerHand = { [key: number /* int */]: Card};
 export type HasId = unknown;
@@ -108,6 +116,12 @@ export interface ClientState {
    * a canasta doesn't earn this player their own foot.
    */
   madeCanasta: boolean;
+  /**
+   * True while this player is blocked from picking up their foot
+   * because they made their first canasta this same turn and haven't
+   * discarded yet — see PickUpFoot in moves.go.
+   */
+  canastaMadeThisTurn: boolean;
   players: OtherPlayerState[];
   ourScore: number /* int */;
   /**

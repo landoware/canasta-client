@@ -29,13 +29,27 @@ const rightOffset = computed(
     `calc(50vw + ${handHalfWidthExpr(props.gameStore.myHand.length)} + ${footRotationOvershootExpr()} + ${GAP})`,
 )
 
+// Greyed out until earned (myMadeCanasta) and, even once earned, for
+// the remainder of the turn the first canasta was made on — see
+// PickUpFoot in moves.go, which rejects a pick-up attempt during that
+// same-turn window. Deliberately doesn't factor in canPlay: that's a
+// momentary "is it my turn right now" thing that would otherwise flash
+// grey/ungrey every turn, whereas this is a one-time, persistent
+// "have I earned this yet" state.
+const dimmed = computed(
+  () => !props.gameStore.myMadeCanasta || props.gameStore.myCanastaMadeThisTurn,
+)
+
 // Re-checked here rather than trusting FootPile's own dimmed styling,
-// since dimming (myMadeCanasta alone) deliberately doesn't track
-// canPlay — it shouldn't flicker grey/ungrey as turns pass once earned,
-// but an actual pick-up attempt still needs it to be this player's turn
-// to play (the server enforces the same — see PickUpFoot/dispatch.go).
+// for the same reason dimmed above skips canPlay — an actual pick-up
+// attempt still needs it to be this player's turn to play (the server
+// enforces the same — see PickUpFoot/dispatch.go).
 function onPickUp(): void {
-  if (props.gameStore.myMadeCanasta && props.gameStore.canPlay) {
+  if (
+    props.gameStore.myMadeCanasta &&
+    !props.gameStore.myCanastaMadeThisTurn &&
+    props.gameStore.canPlay
+  ) {
     props.gameStore.pickUpFoot()
   }
 }
@@ -45,7 +59,7 @@ function onPickUp(): void {
   <div class="fixed bottom-4 pointer-events-none" :style="{ right: rightOffset }">
     <FootPile
       :visible="gameStore.myHasFoot"
-      :dimmed="!gameStore.myMadeCanasta"
+      :dimmed="dimmed"
       :clickable="true"
       :rotate-deg="90"
       back="blue"

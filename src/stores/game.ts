@@ -116,6 +116,14 @@ function defineGameStore(instanceId: string) {
   // Per-player, not per-team, unlike hasGoneDown above.
   const myMadeCanasta: ComputedRef<boolean> = computed(() => gameState.value?.madeCanasta ?? false)
 
+  // True from the moment this player completes their *first* canasta
+  // until they discard on that same turn — PickUpFoot rejects a
+  // pick-up attempt while this is true (see moves.go), so foot pickup
+  // only becomes available starting their next turn.
+  const myCanastaMadeThisTurn: ComputedRef<boolean> = computed(
+    () => gameState.value?.canastaMadeThisTurn ?? false,
+  )
+
   const canDraw: ComputedRef<boolean> = computed(
     () => isMyTurn.value && currentPhase.value === PhaseDrawing && !pendingMove.value,
   )
@@ -341,6 +349,7 @@ function defineGameStore(instanceId: string) {
     hasGoneDown,
     myHasFoot,
     myMadeCanasta,
+    myCanastaMadeThisTurn,
     canDraw,
     canPlay,
     canGoOut,

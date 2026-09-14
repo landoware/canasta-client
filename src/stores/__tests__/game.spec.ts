@@ -144,6 +144,16 @@ describe('game store', () => {
     expect(store.myMadeCanasta).toBe(true)
   })
 
+  it('myCanastaMadeThisTurn reflects the server-sent canastaMadeThisTurn flag', () => {
+    const store = useGameStore()
+
+    store.handleState(baseState({ canastaMadeThisTurn: true }))
+    expect(store.myCanastaMadeThisTurn).toBe(true)
+
+    store.handleState(baseState({ canastaMadeThisTurn: false }))
+    expect(store.myCanastaMadeThisTurn).toBe(false)
+  })
+
   it('handNumber reflects the current hand', () => {
     const store = useGameStore()
     store.handleState(baseState({ handNumber: 3 }))

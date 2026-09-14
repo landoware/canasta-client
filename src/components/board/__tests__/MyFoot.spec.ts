@@ -75,13 +75,26 @@ describe('MyFoot', () => {
     expect(pile.props('back')).toBe('blue')
   })
 
-  it('is not dimmed once madeCanasta is true', () => {
+  it('is not dimmed once madeCanasta is true and canastaMadeThisTurn has cleared', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ hasFoot: true, madeCanasta: true }))
+    gameStore.handleState(
+      baseState({ hasFoot: true, madeCanasta: true, canastaMadeThisTurn: false }),
+    )
 
     const wrapper = mount(MyFoot, { props: { gameStore } })
 
     expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(false)
+  })
+
+  it('stays dimmed on the same turn the first canasta was made, even though madeCanasta is already true', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({ hasFoot: true, madeCanasta: true, canastaMadeThisTurn: true }),
+    )
+
+    const wrapper = mount(MyFoot, { props: { gameStore } })
+
+    expect(wrapper.findComponent(FootPile).props('dimmed')).toBe(true)
   })
 
   it('sends pick_up_foot when the pile is picked up and eligible', () => {
@@ -112,6 +125,40 @@ describe('MyFoot', () => {
     wrapper.findComponent(FootPile).vm.$emit('pick-up')
 
     expect(send).not.toHaveBeenCalled()
+  })
+
+  it('ignores pick-up on the same turn the first canasta was made', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        hasFoot: true,
+        madeCanasta: true,
+        canastaMadeThisTurn: true,
+        phase: PhasePlaying,
+      }),
+    )
+
+    const wrapper = mount(MyFoot, { props: { gameStore } })
+    wrapper.findComponent(FootPile).vm.$emit('pick-up')
+
+    expect(send).not.toHaveBeenCalled()
+  })
+
+  it('sends pick_up_foot once canastaMadeThisTurn has cleared', () => {
+    const gameStore = useGameStore()
+    gameStore.handleState(
+      baseState({
+        hasFoot: true,
+        madeCanasta: true,
+        canastaMadeThisTurn: false,
+        phase: PhasePlaying,
+      }),
+    )
+
+    const wrapper = mount(MyFoot, { props: { gameStore } })
+    wrapper.findComponent(FootPile).vm.$emit('pick-up')
+
+    expect(send).toHaveBeenCalledWith('pick_up_foot', {})
   })
 
   it('positions itself relative to the hand\'s current size, hugging the left edge', () => {
