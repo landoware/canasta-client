@@ -20,6 +20,8 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
     name: 'Me',
     hand: {},
     hasFoot: false,
+    madeCanasta: false,
+    canastaMadeThisTurn: false,
     // Server order: ascending seat index, self skipped.
     players: [
       { name: 'Seat1', handLength: 10, hasFoot: false },

@@ -20,6 +20,8 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
     name: 'Alice',
     hand: {},
     hasFoot: false,
+    madeCanasta: false,
+    canastaMadeThisTurn: false,
     players: [],
     ourScore: 0,
     ourMelds: [],

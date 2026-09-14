@@ -11,6 +11,7 @@ import { useWebSocketStore } from '@/stores/websocket'
 import { useSettingsStore } from '@/stores/settings'
 import type { StateMessage } from '@/types/protocol'
 import { PhasePlaying, Four, Eight } from '@/types/canasta'
+import type { Card } from '@/types/canasta'
 import { SortRankDescending } from '@/utils/handSort'
 import { handHalfWidthExpr } from '@/utils/handLayout'
 
@@ -29,6 +30,8 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
       2: { id: 2, suit: 0, rank: 1 },
     },
     hasFoot: false,
+    madeCanasta: false,
+    canastaMadeThisTurn: false,
     players: [],
     ourScore: 0,
     ourMelds: [],
@@ -124,11 +127,11 @@ describe('GameView', () => {
     )
 
     const wrapper = mount(GameView)
-    expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([1, 2])
+    expect(wrapper.findComponent(PlayerHand).props('cards').map((c: Card) => c.id)).toEqual([1, 2])
 
     await wrapper.findComponent(Button).trigger('click')
 
-    expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([2, 1])
+    expect(wrapper.findComponent(PlayerHand).props('cards').map((c: Card) => c.id)).toEqual([2, 1])
   })
 
   it('positions the Sort button relative to the hand\'s current size, hugging the right edge', () => {
@@ -158,7 +161,7 @@ describe('GameView', () => {
     const wrapper = mount(GameView)
     await wrapper.findComponent(Button).trigger('click')
 
-    expect(wrapper.findComponent(PlayerHand).props('cards').map((c) => c.id)).toEqual([2, 1])
+    expect(wrapper.findComponent(PlayerHand).props('cards').map((c: Card) => c.id)).toEqual([2, 1])
   })
 
   it('creates a meld from 3 selected same-rank cards and clears the selection', async () => {

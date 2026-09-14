@@ -26,6 +26,8 @@ function baseState(overrides: Partial<StateMessage> = {}): StateMessage {
       103: { id: 103, suit: Clubs, rank: Four },
     },
     hasFoot: false,
+    madeCanasta: false,
+    canastaMadeThisTurn: false,
     players: [],
     ourScore: 0,
     ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
