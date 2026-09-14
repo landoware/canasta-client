@@ -7,6 +7,8 @@ app = 'canasta-client'
 primary_region = 'dfw'
 
 [build]
+  [build.args]
+    VITE_SERVER_URL = 'https://canasta-api.landanfagan.com'
 
 [http_service]
 internal_port = 8080
