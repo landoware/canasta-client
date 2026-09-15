@@ -8,7 +8,22 @@ import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useSettingsStore, MeldsPositionTop } from '@/stores/settings'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing, PhasePlaying, Hearts, Diamonds, Clubs, Four, Eight, Three } from '@/types/canasta'
+import {
+  PhaseDrawing,
+  PhasePlaying,
+  Hearts,
+  Diamonds,
+  Clubs,
+  Four,
+  Five,
+  Seven,
+  Eight,
+  Queen,
+  King,
+  Two,
+  Wild,
+  Three,
+} from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -112,7 +127,9 @@ describe('TeamMelds', () => {
 
   it('shows the create-meld affordance only on the melds row when the selection is a valid meld', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ phase: PhasePlaying }))
+    // canGoOut: true since this selection plays the entire 3-card hand
+    // — see the "would strand the hand" tests below for that dimension.
+    gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
     const wrapper = mount(TeamMelds, {
       props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
@@ -150,7 +167,7 @@ describe('TeamMelds', () => {
   // meldAllowedInDrawPhase carve-out.
   it('shows the create-meld affordance during the draw phase while still staging (not gone down)', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ phase: PhaseDrawing, goneDown: false }))
+    gameStore.handleState(baseState({ phase: PhaseDrawing, goneDown: false, canGoOut: true }))
 
     const wrapper = mount(TeamMelds, {
       props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
@@ -172,7 +189,7 @@ describe('TeamMelds', () => {
 
   it('creates the meld through the real store action and emits melded when the tile is clicked', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ phase: PhasePlaying }))
+    gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
     const wrapper = mount(TeamMelds, {
       props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
@@ -482,6 +499,171 @@ describe('TeamMelds', () => {
 
     expect(send).not.toHaveBeenCalled()
     expect(wrapper.emitted('melded')).toBeUndefined()
+  })
+
+  describe('hand stranding', () => {
+    // Default hand is exactly 3 cards (101-103, all Fours) — playing all
+    // 3 for a new meld, or 2 of them onto the default meld/canasta
+    // (also rank Four), would leave 0 or 1 cards respectively without
+    // go-out permission.
+    it('hides the create-meld affordance when playing the whole hand without go-out permission', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: false }))
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      })
+
+      expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
+    })
+
+    it('shows the create-meld affordance for the same selection once granted permission', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      })
+
+      expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(true)
+    })
+
+    it('hides add-to-meld clickability when it would strand the hand', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: false }))
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+      })
+      const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+      expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
+    })
+
+    it('shows add-to-meld clickability for the same selection once granted permission', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+      })
+      const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+      expect(meldsRow.props('clickableGroupIds')).toEqual(new Set([1]))
+    })
+
+    it('hides burn clickability when it would strand the hand', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: false }))
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+      })
+      const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+      expect(canastasRow.props('clickableGroupIds')).toEqual(new Set())
+    })
+
+    it('shows burn clickability for the same selection once granted permission', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+      })
+      const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
+
+      expect(canastasRow.props('clickableGroupIds')).toEqual(new Set([2]))
+    })
+  })
+
+  describe('completing the last required canasta type despite stranding the hand', () => {
+    // Mirrors the reported edge case exactly: a 2-card hand (King + a
+    // wildcard Two), adding the wildcard to an existing 6-card Queens
+    // meld completes the team's last required (unnatural) canasta type.
+    const queensMeld = {
+      id: 1,
+      rank: Queen,
+      cards: Array.from({ length: 6 }, (_, i) => ({ id: 900 + i, suit: Hearts, rank: Queen })),
+      wildCount: 0,
+    }
+    const canasta = (id: number, rank: number, natural: boolean) => ({
+      id,
+      rank,
+      cards: Array.from({ length: 7 }, (_, i) => ({ id: id * 100 + i, suit: Hearts, rank })),
+      count: 7,
+      natural,
+    })
+    const missingOnlyUnnatural = [canasta(10, Four, true), canasta(11, Seven, true), canasta(12, Wild, false)]
+    const twoCardHand = {
+      500: { id: 500, suit: Clubs, rank: King },
+      501: { id: 501, suit: Wild, rank: Two },
+    }
+
+    it('shows add-to-meld clickability when it completes the last required canasta type, leaving exactly one card', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhasePlaying,
+          goneDown: true,
+          canGoOut: false,
+          hand: twoCardHand,
+          ourMelds: [queensMeld],
+          ourCanastas: missingOnlyUnnatural,
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([501]) },
+      })
+      const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+      expect(meldsRow.props('clickableGroupIds')).toEqual(new Set([1]))
+    })
+
+    it('hides add-to-meld clickability when the completed canasta does not fill a missing bucket', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhasePlaying,
+          goneDown: true,
+          canGoOut: false,
+          hand: { 500: { id: 500, suit: Clubs, rank: King }, 501: { id: 501, suit: Diamonds, rank: Queen } },
+          ourMelds: [queensMeld],
+          // Missing sevens instead — completing a (still-natural) Queens
+          // canasta doesn't help.
+          ourCanastas: [canasta(10, Four, true), canasta(11, Five, false), canasta(12, Wild, false)],
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([501]) },
+      })
+      const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+      expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
+    })
+
+    it('hides add-to-meld clickability when it would leave zero cards, even completing the last required type', () => {
+      const gameStore = useGameStore()
+      gameStore.handleState(
+        baseState({
+          phase: PhasePlaying,
+          goneDown: true,
+          canGoOut: false,
+          hand: { 501: { id: 501, suit: Wild, rank: Two } }, // only the wildcard, no spare King
+          ourMelds: [queensMeld],
+          ourCanastas: missingOnlyUnnatural,
+        }),
+      )
+
+      const wrapper = mount(TeamMelds, {
+        props: { gameStore, selectedCardIds: new Set([501]) },
+      })
+      const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
+
+      expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
+    })
   })
 
   describe('red threes', () => {

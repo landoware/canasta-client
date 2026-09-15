@@ -9,14 +9,18 @@
 import { computed, ref, watch } from 'vue'
 import type { GameStore } from '@/stores/game'
 import { useSettingsStore, MeldsPositionBottom } from '@/stores/settings'
-import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
+import { PhaseDrawing, PhasePlaying, Wild } from '@/types/canasta'
+import type { Rank } from '@/types/canasta'
 import {
   isValidNewMeld,
   isValidAddToMeld,
   isValidBurn,
   isValidRedThreePlay,
   isRedThree,
+  isWildCard,
   meetsGoDownRequirement,
+  wouldStrandHand,
+  completesLastCanastaAllowingOneCard,
 } from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
 import FitToArea from './FitToArea.vue'
@@ -51,7 +55,42 @@ const canMeld = computed(
       (props.gameStore.currentPhase === PhaseDrawing && !props.gameStore.hasGoneDown)),
 )
 
-const canCreateMeld = computed(() => canMeld.value && isValidNewMeld(selectedCards.value))
+// Melding/adding/burning the current selection must never leave the
+// hand stranded at fewer than 2 cards without go-out permission — see
+// cardHelpers.wouldStrandHand, mirroring internal/canasta's own rule
+// exactly (Discard itself refuses to discard from a 1-card hand without
+// that permission, so nothing else may leave one either).
+const selectionWouldStrandHand = computed(() =>
+  wouldStrandHand(props.gameStore.myHand.length, selectedCards.value.length, props.gameStore.canGoOut),
+)
+
+// A create-meld/add-to-meld that would strand the hand may still be
+// allowed when it's this exact move that completes the team's last
+// required canasta type — see cardHelpers.completesLastCanastaAllowingOneCard,
+// mirroring moves.go's identical escape hatch exactly (only relevant
+// once gone down and reaching 7+ cards; a staging meld never
+// immediately becomes a canasta).
+const createMeldCompletesGoOut = computed(() => {
+  if (!props.gameStore.hasGoneDown || selectedCards.value.length < 7) return false
+  const nonWild = selectedCards.value.filter((c) => !isWildCard(c))
+  const rank: Rank = nonWild.length > 0 ? nonWild[0]!.rank : Wild
+  const natural = nonWild.length === selectedCards.value.length
+  const resultingHandSize = props.gameStore.myHand.length - selectedCards.value.length
+  return completesLastCanastaAllowingOneCard(
+    props.gameStore.myTeamCanastas,
+    resultingHandSize,
+    true,
+    rank,
+    natural,
+  )
+})
+
+const canCreateMeld = computed(
+  () =>
+    canMeld.value &&
+    (!selectionWouldStrandHand.value || createMeldCompletesGoOut.value) &&
+    isValidNewMeld(selectedCards.value),
+)
 
 function onCreateMeld(): void {
   if (!canCreateMeld.value) return
@@ -66,7 +105,25 @@ function onCreateMeld(): void {
 const addableMeldIds = computed(() => {
   if (!canMeld.value) return new Set<number>()
   const ids = props.gameStore.myTeamMelds
-    .filter((meld) => isValidAddToMeld(meld, selectedCards.value))
+    .filter((meld) => {
+      if (!isValidAddToMeld(meld, selectedCards.value)) return false
+      if (!selectionWouldStrandHand.value) return true
+      // Escape hatch: only relevant for official (already-gone-down)
+      // melds reaching 7+ cards — staging melds never immediately
+      // become canastas via AddToMeld (see moves.go).
+      if (!props.gameStore.hasGoneDown) return false
+      const addedWildCount = selectedCards.value.filter(isWildCard).length
+      const resultingSize = meld.cards.length + selectedCards.value.length
+      const resultingHandSize = props.gameStore.myHand.length - selectedCards.value.length
+      const natural = meld.wildCount + addedWildCount === 0
+      return completesLastCanastaAllowingOneCard(
+        props.gameStore.myTeamCanastas,
+        resultingHandSize,
+        resultingSize >= 7,
+        meld.rank,
+        natural,
+      )
+    })
     .map((meld) => meld.id)
   return new Set(ids)
 })
@@ -83,7 +140,7 @@ function onSelectMeld(meldId: number): void {
 // official after), myTeamCanastas is always the team's real,
 // already-scored canastas.
 const burnableCanastaIds = computed(() => {
-  if (!props.gameStore.canPlay) return new Set<number>()
+  if (!props.gameStore.canPlay || selectionWouldStrandHand.value) return new Set<number>()
   const ids = props.gameStore.myTeamCanastas
     .filter((canasta) => isValidBurn(canasta, selectedCards.value))
     .map((canasta) => canasta.id)

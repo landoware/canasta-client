@@ -173,6 +173,10 @@ describe('GameView', () => {
           2: { id: 2, suit: 1, rank: Four },
           3: { id: 3, suit: 2, rank: Four },
         },
+        // Playing the entire 3-card hand needs go-out permission, or
+        // the new hand-stranding check rejects it — see cardHelpers'
+        // wouldStrandHand.
+        canGoOut: true,
       }),
     )
 

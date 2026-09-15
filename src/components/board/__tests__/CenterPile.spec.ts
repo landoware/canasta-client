@@ -7,7 +7,22 @@ import DiscardPile from '../DiscardPile.vue'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import type { StateMessage } from '@/types/protocol'
-import { PhaseDrawing, PhasePlaying, Hearts, Diamonds, Clubs, Spades, Four, Two, Three } from '@/types/canasta'
+import {
+  PhaseDrawing,
+  PhasePlaying,
+  Hearts,
+  Diamonds,
+  Clubs,
+  Spades,
+  Four,
+  Five,
+  Seven,
+  Two,
+  Joker,
+  King,
+  Wild,
+  Three,
+} from '@/types/canasta'
 
 vi.mock('@/stores/websocket', () => ({
   useWebSocketStore: vi.fn(),
@@ -253,6 +268,129 @@ describe('CenterPile', () => {
 
       expect(send).toHaveBeenCalledWith('pick_up_discard_pile', { cardIds: [7, 8] })
       expect(wrapper.emitted('played')).toHaveLength(1)
+    })
+
+    describe('hand stranding', () => {
+      // A 2-card hand, both contributed, with only the top card in the
+      // pile (discardCount: 1) — mirrors PickUpDiscardPile's own
+      // finalHandSize check in moves.go: 2 - 2 + (1 - 1) = 0 remaining.
+      const twoCardHand = {
+        7: { id: 7, suit: Clubs, rank: Four },
+        8: { id: 8, suit: Hearts, rank: Four },
+      }
+
+      it('stays disabled when the pile is too thin to refill the hand', () => {
+        const gameStore = useGameStore()
+        gameStore.handleState(
+          baseState({
+            phase: PhaseDrawing,
+            discardCount: 1,
+            discardTopCard: { id: 1, suit: Spades, rank: Four },
+            hand: twoCardHand,
+            canGoOut: false,
+          }),
+        )
+
+        const wrapper = mountCenterPile(gameStore, null, new Set([7, 8]))
+
+        expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(true)
+      })
+
+      it('is enabled for the same thin pile once granted go-out permission', () => {
+        const gameStore = useGameStore()
+        gameStore.handleState(
+          baseState({
+            phase: PhaseDrawing,
+            discardCount: 1,
+            discardTopCard: { id: 1, suit: Spades, rank: Four },
+            hand: twoCardHand,
+            canGoOut: true,
+          }),
+        )
+
+        const wrapper = mountCenterPile(gameStore, null, new Set([7, 8]))
+
+        expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(false)
+      })
+
+      it('is enabled when the rest of the pile would refill the hand', () => {
+        const gameStore = useGameStore()
+        gameStore.handleState(
+          baseState({
+            phase: PhaseDrawing,
+            discardCount: 3,
+            discardTopCard: { id: 1, suit: Spades, rank: Four },
+            hand: twoCardHand,
+            canGoOut: false,
+          }),
+        )
+
+        const wrapper = mountCenterPile(gameStore, null, new Set([7, 8]))
+
+        expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(false)
+      })
+
+      it('is enabled when the pickup completes the team\'s last required canasta type, leaving exactly one card', () => {
+        const gameStore = useGameStore()
+        const canasta = (id: number, rank: number, natural: boolean) => ({
+          id,
+          rank,
+          cards: Array.from({ length: 7 }, (_, i) => ({ id: id * 100 + i, suit: Hearts, rank })),
+          count: 7,
+          natural,
+        })
+        const sixWildTwos = Object.fromEntries(
+          Array.from({ length: 6 }, (_, i) => [100 + i, { id: 100 + i, suit: Hearts, rank: Two }]),
+        )
+
+        gameStore.handleState(
+          baseState({
+            phase: PhaseDrawing,
+            goneDown: true,
+            canGoOut: false,
+            discardCount: 1,
+            discardTopCard: { id: 1, suit: Spades, rank: Joker },
+            hand: { ...sixWildTwos, 999: { id: 999, suit: Clubs, rank: King } },
+            // Already covers natural, unnatural, and sevens — only
+            // wildcards is missing.
+            ourCanastas: [canasta(10, Four, true), canasta(11, Five, false), canasta(12, Seven, true)],
+          }),
+        )
+
+        const wrapper = mountCenterPile(gameStore, null, new Set([100, 101, 102, 103, 104, 105]))
+
+        expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(false)
+      })
+
+      it('stays disabled when the pickup would leave zero cards, even completing the last required type', () => {
+        const gameStore = useGameStore()
+        const canasta = (id: number, rank: number, natural: boolean) => ({
+          id,
+          rank,
+          cards: Array.from({ length: 7 }, (_, i) => ({ id: id * 100 + i, suit: Hearts, rank })),
+          count: 7,
+          natural,
+        })
+        const sixWildTwos = Object.fromEntries(
+          Array.from({ length: 6 }, (_, i) => [100 + i, { id: 100 + i, suit: Hearts, rank: Two }]),
+        )
+
+        gameStore.handleState(
+          baseState({
+            phase: PhaseDrawing,
+            goneDown: true,
+            canGoOut: false,
+            discardCount: 1,
+            discardTopCard: { id: 1, suit: Spades, rank: Joker },
+            hand: sixWildTwos, // no spare card left over this time
+            ourCanastas: [canasta(10, Four, true), canasta(11, Five, false), canasta(12, Seven, true)],
+          }),
+        )
+
+        const wrapper = mountCenterPile(gameStore, null, new Set([100, 101, 102, 103, 104, 105]))
+
+        expect(wrapper.findComponent(DiscardPile).props('disabled')).toBe(true)
+      })
     })
   })
 })

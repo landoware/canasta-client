@@ -10,6 +10,9 @@ import {
   meldsPointTotal,
   meetsGoDownRequirement,
   meetsGoOutRequirements,
+  wouldStrandHand,
+  completesGoOutRequirements,
+  completesLastCanastaAllowingOneCard,
 } from '../cardHelpers'
 import {
   Hearts,
@@ -462,5 +465,65 @@ describe('meetsGoOutRequirements', () => {
   it('does not let a sevens canasta double as the natural requirement', () => {
     // Two sevens canastas instead of one natural + one sevens.
     expect(meetsGoOutRequirements([sevens, sevens, unnatural, wildcards])).toBe(false)
+  })
+})
+
+describe('wouldStrandHand', () => {
+  it('is true when playing the whole hand without go-out permission', () => {
+    expect(wouldStrandHand(2, 2, false)).toBe(true) // 2 -> 0
+    expect(wouldStrandHand(3, 2, false)).toBe(true) // 3 -> 1
+  })
+
+  it('is false when at least 2 cards remain', () => {
+    expect(wouldStrandHand(3, 1, false)).toBe(false) // 3 -> 2
+    expect(wouldStrandHand(5, 2, false)).toBe(false) // 5 -> 3
+  })
+
+  it('is always false with go-out permission, regardless of how few cards remain', () => {
+    expect(wouldStrandHand(2, 2, true)).toBe(false)
+    expect(wouldStrandHand(1, 1, true)).toBe(false)
+  })
+})
+
+describe('completesGoOutRequirements', () => {
+  const natural = { rank: Four, natural: true }
+  const unnatural = { rank: Five, natural: false }
+  const sevens = { rank: Seven, natural: true }
+  const wildcards = { rank: Wild, natural: false }
+
+  it('is true when the hypothetical canasta fills the only missing bucket', () => {
+    expect(completesGoOutRequirements([natural, sevens, wildcards], Five, false)).toBe(true)
+  })
+
+  it('is false when a bucket is still missing after the hypothetical canasta', () => {
+    // Adding a second natural doesn't fill the missing "unnatural" bucket.
+    expect(completesGoOutRequirements([natural, sevens, wildcards], Eight, true)).toBe(false)
+  })
+
+  it('is false from an empty starting point (one canasta alone is never enough)', () => {
+    expect(completesGoOutRequirements([], Four, true)).toBe(false)
+  })
+})
+
+describe('completesLastCanastaAllowingOneCard', () => {
+  const natural = { rank: Four, natural: true }
+  const sevens = { rank: Seven, natural: true }
+  const wildcards = { rank: Wild, natural: false }
+  const missingOnlyUnnatural = [natural, sevens, wildcards]
+
+  it('is true when the resulting hand is exactly 1, the meld completes, and it fills the last bucket', () => {
+    expect(completesLastCanastaAllowingOneCard(missingOnlyUnnatural, 1, true, Five, false)).toBe(true)
+  })
+
+  it('is false when the resulting hand would be 0, even though it fills the last bucket', () => {
+    expect(completesLastCanastaAllowingOneCard(missingOnlyUnnatural, 0, true, Five, false)).toBe(false)
+  })
+
+  it('is false when the meld does not actually become a canasta (e.g. staging, or under 7 cards)', () => {
+    expect(completesLastCanastaAllowingOneCard(missingOnlyUnnatural, 1, false, Five, false)).toBe(false)
+  })
+
+  it('is false when the completed canasta does not fill a missing bucket', () => {
+    expect(completesLastCanastaAllowingOneCard(missingOnlyUnnatural, 1, true, Eight, true)).toBe(false)
   })
 })

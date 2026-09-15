@@ -217,6 +217,43 @@ export const meetsGoOutRequirements = (canastas: { rank: Rank; natural: boolean 
   return hasNatural && hasUnnatural && hasSevens && hasWildcards
 }
 
+// Mirrors internal/canasta's completesGoOutRequirements exactly: whether
+// adding a hypothetical new canasta of the given rank/naturalness to
+// the team's existing ones would satisfy the go-out requirements — used
+// to let a move that would otherwise strand a player's hand proceed
+// anyway when the move itself completes the team's last required
+// canasta type (see wouldStrandHand / completesLastCanastaAllowingOneCard
+// below).
+export const completesGoOutRequirements = (
+  canastas: { rank: Rank; natural: boolean }[],
+  rank: Rank,
+  natural: boolean,
+): boolean => meetsGoOutRequirements([...canastas, { rank, natural }])
+
+// Mirrors internal/canasta's wouldStrandHand exactly: NewMeld,
+// AddToMeld, and BurnCards all refuse to leave a hand below 2 cards
+// unless the team can already go out — Discard itself refuses to
+// discard from a 1-card hand without that permission, so a player left
+// at 1 card any other way could never end their turn again.
+export const wouldStrandHand = (handSize: number, cardsToPlay: number, canGoOut: boolean): boolean =>
+  !canGoOut && handSize - cardsToPlay < 2
+
+// Mirrors internal/canasta's completesLastCanastaAllowingOneCard
+// exactly: a move that would otherwise strand the hand may proceed
+// anyway when the resulting hand is exactly 1 card (never 0 — a player
+// needs a card left to actually discard once granted permission — see
+// wouldStrandHand above) and the move itself completes the team's last
+// required canasta type, so the player can then request go-out
+// permission for exactly this situation.
+export const completesLastCanastaAllowingOneCard = (
+  canastas: { rank: Rank; natural: boolean }[],
+  resultingHandSize: number,
+  becomesCanasta: boolean,
+  rank: Rank,
+  natural: boolean,
+): boolean =>
+  resultingHandSize === 1 && becomesCanasta && completesGoOutRequirements(canastas, rank, natural)
+
 export const formatCard = (card: Card): string => {
   const rankNames = ['4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2', 'Joker', '3']
   const suitSymbols = ['♥', '♦', '♣', '♠']
