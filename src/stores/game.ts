@@ -22,6 +22,9 @@ import {
   TypePlayRedThree,
   TypeGrantPermissionToGoOut,
   TypeAskToGoOut,
+  TypeSetReady,
+  TypeReorderSeats,
+  TypeStartGame,
 } from '@/types/protocol'
 import type { Card, Meld, Canasta } from '@/types/canasta'
 import { PhaseDrawing, PhasePlaying } from '@/types/canasta'
@@ -95,6 +98,26 @@ function defineGameStore(instanceId: string) {
   const isPlaying: ComputedRef<boolean> = computed(() => gameState.value !== null)
 
   const isInLobby: ComputedRef<boolean> = computed(() => !isPlaying.value)
+
+  const myIsHost: ComputedRef<boolean> = computed(
+    () => lobbySeats.value.find((s) => s.seatIndex === mySeatIndex.value)?.isHost ?? false,
+  )
+
+  const myIsReady: ComputedRef<boolean> = computed(
+    () => lobbySeats.value.find((s) => s.seatIndex === mySeatIndex.value)?.ready ?? false,
+  )
+
+  const lobbySeatsFull: ComputedRef<boolean> = computed(
+    () => lobbySeats.value.length === 4 && lobbySeats.value.every((s) => s.name !== ''),
+  )
+
+  const lobbyAllReady: ComputedRef<boolean> = computed(
+    () => lobbySeats.value.length === 4 && lobbySeats.value.every((s) => s.ready),
+  )
+
+  const canStartGame: ComputedRef<boolean> = computed(
+    () => myIsHost.value && lobbySeatsFull.value && lobbyAllReady.value,
+  )
 
   const isGameOver: ComputedRef<boolean> = computed(() => gameState.value?.gameOver ?? false)
 
@@ -212,6 +235,28 @@ function defineGameStore(instanceId: string) {
     })
   }
 
+  // setReady toggles this seat's ready flag for everyone in the lobby to
+  // see (see LobbySeat.ready) — the host's Start Game button stays
+  // disabled until every seat reports ready (see canStartGame above).
+  const setReady = (ready: boolean): void => {
+    useWebSocketStore(instanceId).send(TypeSetReady, { ready })
+  }
+
+  // reorderSeats lets the host (see myIsHost above) rearrange table order
+  // before starting — order is the new seatIndex order by table position.
+  // The server rejects this from anyone but the host (NOT_HOST).
+  const reorderSeats = (order: number[]): void => {
+    useWebSocketStore(instanceId).send(TypeReorderSeats, { order })
+  }
+
+  // startGame is the host's explicit trigger to begin the game — the
+  // server rejects it unless the sender is host, all 4 seats are named,
+  // and all are ready (see canStartGame above, which mirrors those
+  // conditions client-side to keep the button disabled until they hold).
+  const startGame = (): void => {
+    useWebSocketStore(instanceId).send(TypeStartGame, {})
+  }
+
   // ============================================================================
   // ACTIONS - Gameplay
   // ============================================================================
@@ -303,6 +348,14 @@ function defineGameStore(instanceId: string) {
   }
 
   const handleState = (payload: StateMessage): void => {
+    // StateMessage.seatIndex is table position (see internal/room.Room's
+    // posForConnSlot), which can differ from the connection-slot lobby
+    // seat this client started in if the host reordered seats before
+    // starting — OtherPlayers.vue and useDiscardFlightWatcher.ts rely on
+    // mySeatIndex for in-game layout, so it must track table position from
+    // here on, not the original lobby seat.
+    mySeatIndex.value = payload.seatIndex
+
     const previousHand = gameState.value?.handNumber
     const wasGameOver = gameState.value?.gameOver ?? false
 
@@ -410,6 +463,11 @@ function defineGameStore(instanceId: string) {
     // Computed
     isInLobby,
     isPlaying,
+    myIsHost,
+    myIsReady,
+    lobbySeatsFull,
+    lobbyAllReady,
+    canStartGame,
     isGameOver,
     winner,
     isMyTurn,
@@ -439,6 +497,9 @@ function defineGameStore(instanceId: string) {
     // Actions - Lobby
     createRoom,
     joinRoom,
+    setReady,
+    reorderSeats,
+    startGame,
 
     // Actions - Gameplay
     drawFromDeck,

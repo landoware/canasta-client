@@ -230,8 +230,8 @@ describe('game store', () => {
     const store = useGameStore()
     const payload: PlayersLobbyPayload = {
       seats: [
-        { seatIndex: 0, name: 'Alice', connected: true },
-        { seatIndex: 1, name: '', connected: false },
+        { seatIndex: 0, name: 'Alice', connected: true, ready: true, isHost: true },
+        { seatIndex: 1, name: '', connected: false, ready: false, isHost: false },
       ],
     }
 
@@ -242,13 +242,83 @@ describe('game store', () => {
 
   it('handlePlayerStatus adds a notification naming the seat', () => {
     const store = useGameStore()
-    store.handlePlayersLobby({ seats: [{ seatIndex: 1, name: 'Bob', connected: true }] })
+    store.handlePlayersLobby({
+      seats: [{ seatIndex: 1, name: 'Bob', connected: true, ready: false, isHost: false }],
+    })
 
     const payload: PlayerStatusPayload = { seatIndex: 1, status: 'away' }
     store.handlePlayerStatus(payload)
 
     expect(store.notifications).toContainEqual(expect.stringContaining('Bob'))
     expect(store.notifications).toContainEqual(expect.stringContaining('away'))
+  })
+
+  it('myIsHost/myIsReady reflect the lobby seat matching mySeatIndex', () => {
+    const store = useGameStore()
+    store.handleWelcome({ seatIndex: 1, roomCode: 'ABC123', roomState: 'lobby' })
+    store.handlePlayersLobby({
+      seats: [
+        { seatIndex: 0, name: 'Alice', connected: true, ready: true, isHost: true },
+        { seatIndex: 1, name: 'Bob', connected: true, ready: false, isHost: false },
+      ],
+    })
+
+    expect(store.myIsHost).toBe(false)
+    expect(store.myIsReady).toBe(false)
+
+    store.handlePlayersLobby({
+      seats: [
+        { seatIndex: 0, name: 'Alice', connected: true, ready: true, isHost: true },
+        { seatIndex: 1, name: 'Bob', connected: true, ready: true, isHost: false },
+      ],
+    })
+    expect(store.myIsReady).toBe(true)
+  })
+
+  it('lobbySeatsFull/lobbyAllReady/canStartGame require all 4 seats named and ready, and host to start', () => {
+    const store = useGameStore()
+    store.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'lobby' })
+
+    store.handlePlayersLobby({
+      seats: [
+        { seatIndex: 0, name: 'Alice', connected: true, ready: true, isHost: true },
+        { seatIndex: 1, name: 'Bob', connected: true, ready: false, isHost: false },
+      ],
+    })
+    expect(store.lobbySeatsFull).toBe(false)
+    expect(store.canStartGame).toBe(false)
+
+    store.handlePlayersLobby({
+      seats: [
+        { seatIndex: 0, name: 'Alice', connected: true, ready: true, isHost: true },
+        { seatIndex: 1, name: 'Bob', connected: true, ready: false, isHost: false },
+        { seatIndex: 2, name: 'Carol', connected: true, ready: true, isHost: false },
+        { seatIndex: 3, name: 'Dave', connected: true, ready: true, isHost: false },
+      ],
+    })
+    expect(store.lobbySeatsFull).toBe(true)
+    expect(store.lobbyAllReady).toBe(false)
+    expect(store.canStartGame).toBe(false)
+
+    store.handlePlayersLobby({
+      seats: [
+        { seatIndex: 0, name: 'Alice', connected: true, ready: true, isHost: true },
+        { seatIndex: 1, name: 'Bob', connected: true, ready: true, isHost: false },
+        { seatIndex: 2, name: 'Carol', connected: true, ready: true, isHost: false },
+        { seatIndex: 3, name: 'Dave', connected: true, ready: true, isHost: false },
+      ],
+    })
+    expect(store.lobbyAllReady).toBe(true)
+    expect(store.canStartGame).toBe(true)
+  })
+
+  it('handleState updates mySeatIndex to the broadcast table position', () => {
+    const store = useGameStore()
+    store.handleWelcome({ seatIndex: 0, roomCode: 'ABC123', roomState: 'lobby' })
+    expect(store.mySeatIndex).toBe(0)
+
+    store.handleState(baseState({ seatIndex: 2 }))
+    expect(store.mySeatIndex).toBe(2)
   })
 
   it.each([
@@ -289,6 +359,20 @@ describe('game store', () => {
     ],
     ['askToGoOut', () => useGameStore().askToGoOut(), 'ask_to_go_out', {}],
   ])('%s sends the matching typed payload', (_name, act, expectedType, expectedData) => {
+    act()
+    expect(send).toHaveBeenCalledWith(expectedType, expectedData)
+  })
+
+  it.each([
+    ['setReady', () => useGameStore().setReady(true), 'set_ready', { ready: true }],
+    [
+      'reorderSeats',
+      () => useGameStore().reorderSeats([1, 0, 2, 3]),
+      'reorder_seats',
+      { order: [1, 0, 2, 3] },
+    ],
+    ['startGame', () => useGameStore().startGame(), 'start_game', {}],
+  ])('%s sends the matching typed payload, bypassing pendingMove', (_name, act, expectedType, expectedData) => {
     act()
     expect(send).toHaveBeenCalledWith(expectedType, expectedData)
   })

@@ -21,6 +21,9 @@ export const ErrNotPartner: ErrorCode = "NOT_PARTNER";
 export const ErrRoomNotPlaying: ErrorCode = "ROOM_NOT_PLAYING";
 export const ErrUnknownType: ErrorCode = "UNKNOWN_MESSAGE_TYPE";
 export const ErrInvalidPayload: ErrorCode = "INVALID_PAYLOAD";
+export const ErrNotHost: ErrorCode = "NOT_HOST";
+export const ErrSeatsNotFull: ErrorCode = "SEATS_NOT_FULL";
+export const ErrNotAllReady: ErrorCode = "NOT_ALL_READY";
 /**
  * Fallback for any internal/canasta error that doesn't follow the
  * "CODE: message" convention.
@@ -133,6 +136,27 @@ export const TypeGrantPermissionToGoOut: MessageType = "grant_permission_to_go_o
  */
 export const TypeAskToGoOut: MessageType = "ask_to_go_out";
 /**
+ * Client -> server message types. One per internal/canasta mutator, plus
+ * the permission-to-go-out handshake. Identity (name) is established at
+ * connection time (see internal/room.Room.Join), not via an in-band
+ * message.
+ */
+export const TypeSetReady: MessageType = "set_ready";
+/**
+ * Client -> server message types. One per internal/canasta mutator, plus
+ * the permission-to-go-out handshake. Identity (name) is established at
+ * connection time (see internal/room.Room.Join), not via an in-band
+ * message.
+ */
+export const TypeReorderSeats: MessageType = "reorder_seats";
+/**
+ * Client -> server message types. One per internal/canasta mutator, plus
+ * the permission-to-go-out handshake. Identity (name) is established at
+ * connection time (see internal/room.Room.Join), not via an in-band
+ * message.
+ */
+export const TypeStartGame: MessageType = "start_game";
+/**
  * Server -> client message types.
  */
 export const TypeWelcome: MessageType = "welcome";
@@ -235,6 +259,22 @@ export interface LobbySeat {
   seatIndex: number /* int */;
   name: string;
   connected: boolean;
+  ready: boolean;
+  isHost: boolean;
+}
+/**
+ * SetReadyPayload marks the sender's own seat ready/not-ready to start.
+ */
+export interface SetReadyPayload {
+  ready: boolean;
+}
+/**
+ * ReorderSeatsPayload is sent only by the host, only while the room is in
+ * the Lobby. Order[pos] is the seat index (connection slot) that should
+ * occupy table position pos — a permutation of 0..3.
+ */
+export interface ReorderSeatsPayload {
+  order: number /* int */[];
 }
 /**
  * PlayersLobbyPayload is broadcast to all connected seats while a room
