@@ -9,6 +9,7 @@ import { handHalfWidthExpr } from '@/utils/handLayout'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
 import OtherPlayers from '@/components/board/OtherPlayers.vue'
+import LiveScore from '@/components/board/LiveScore.vue'
 import OpponentMelds from '@/components/board/OpponentMelds.vue'
 import TeamMelds from '@/components/board/TeamMelds.vue'
 import MyFoot from '@/components/board/MyFoot.vue'
@@ -98,6 +99,7 @@ function clearSelection(): void {
     :clickable-names="allowSeatSwitch"
     @select-seat="emit('select-seat', $event)"
   />
+  <LiveScore :game-store="gameStore" />
   <OpponentMelds
     :game-store="gameStore"
     :display-melds="displayOpponentMelds"

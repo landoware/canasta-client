@@ -20,6 +20,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // player's own hand; completed canastas take the other half (nearer the
   // partner's hand). This just swaps which is which.
   const meldsPosition = ref<MeldsPosition>(MeldsPositionBottom)
+  const showLiveScore = ref(false)
 
-  return { cardScale, sortMethod, meldsPosition }
+  return { cardScale, sortMethod, meldsPosition, showLiveScore }
 })
