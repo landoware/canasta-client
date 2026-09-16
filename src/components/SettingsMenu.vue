@@ -21,10 +21,10 @@ const router = useRouter();
 const gameStore = useGameStore();
 const wsStore = useWebSocketStore();
 
-// Only the real single-seat game board (/game/:roomCode) has one player to
-// leave — /join/:roomCode (LobbyView) already has its own Leave button, and
-// /demo's 4 concurrent local seats have no single "leave" concept.
-const isInGame = computed(() => route.path.startsWith("/game/"));
+// Shown on the real game board (/game/:roomCode) and the demo (/demo,
+// which reuses GameView itself) — /join/:roomCode (LobbyView) already has
+// its own Leave button and doesn't need this one.
+const isInGame = computed(() => route.path.startsWith("/game/") || route.path === "/demo");
 
 function leaveGame(): void {
   // Mirrors LobbyView.vue's leave() exactly: there's no server-side
@@ -79,7 +79,12 @@ function leaveGame(): void {
         </select>
       </label>
 
-      <Button v-if="isInGame" label="Leave Game" class="mt-auto w-full" @click="leaveGame()" />
+      <!-- Wrapped in a plain (non-flex) div so Button's own flex-1 doesn't
+           grow it to fill the panel's remaining height — mt-auto on this
+           wrapper still pushes it to the bottom of the flex-col panel. -->
+      <div v-if="isInGame" class="mt-auto">
+        <Button label="Leave Game" class="w-full" @click="leaveGame()" />
+      </div>
     </div>
 
     <button type="button" class="flex-1 bg-black/40" aria-label="Close settings" @click="isOpen = false"></button>

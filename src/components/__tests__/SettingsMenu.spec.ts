@@ -127,6 +127,14 @@ describe('SettingsMenu', () => {
       expect(leaveButton).not.toBeUndefined()
     })
 
+    it('shows the Leave Game button on the demo', async () => {
+      const { wrapper } = await mountSettingsMenu('/demo')
+      await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+      const leaveButton = wrapper.findAll('button').find((b) => b.text() === 'Leave Game')
+      expect(leaveButton).not.toBeUndefined()
+    })
+
     it('disconnects, clears game state, closes the menu, and navigates home when clicked', async () => {
       const { wrapper, router } = await mountSettingsMenu('/game/ABCD')
       const gameStore = useGameStore()
