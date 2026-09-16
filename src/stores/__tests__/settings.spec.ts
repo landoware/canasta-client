@@ -39,15 +39,4 @@ describe('settings store', () => {
     settings.cardScale = 1.5
     expect(settings.cardScale).toBe(1.5)
   })
-
-  it('defaults autoPlayRedThrees to off', () => {
-    const settings = useSettingsStore()
-    expect(settings.autoPlayRedThrees).toBe(false)
-  })
-
-  it('autoPlayRedThrees can be toggled', () => {
-    const settings = useSettingsStore()
-    settings.autoPlayRedThrees = true
-    expect(settings.autoPlayRedThrees).toBe(true)
-  })
 })

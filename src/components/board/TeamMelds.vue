@@ -209,53 +209,28 @@ function onPlayRedThree(): void {
   emit('melded')
 }
 
-// Drives both halves of this feature reactively, off of the hand itself
-// (which is what actually changes once a play_red_three round-trip
-// completes — sendMove's pendingMove guard means a follow-up move can't
-// just be sent immediately after playRedThree()):
-//  - auto-play: with the setting on, any red three(s) sitting in hand at
-//    the start of a turn get played automatically, in one batch.
-//  - auto-draw: once no red three remains in hand (whether cleared by
-//    auto-play or a manual play via onPlayRedThree above), fires the
-//    turn's actual normal draw — but only for a play *this client*
-//    started, not just because a turn happened to start empty-handed of
-//    red threes (a plain new turn shouldn't auto-draw on its own).
-// A red three played from hand always gets an immediate replacement card
-// (see PlayRedThree in moves.go), which can itself be a further red
-// three — unlike the normal draw, that path doesn't loop to clear it, so
-// this can legitimately fire more than once per turn. A foot-origin red
-// three (see footOriginCardIds in game.ts) gets no replacement, and each
-// firing here only sends one origin-group at a time (see
-// splitByFootOrigin) — a hand holding both kinds re-fires this watcher
-// once the first group's play round-trips, sending the other next.
+// Once this client has played a red three (via onPlayRedThree above) and
+// none remain in hand, fires the turn's actual normal draw — but only
+// for a play *this client* started, not just because a turn happened to
+// start empty-handed of red threes (a plain new turn shouldn't auto-draw
+// on its own). This reacts off the hand itself since sendMove's
+// pendingMove guard means a follow-up move can't just be sent
+// immediately after playRedThree() — the hand change is what signals the
+// round trip completed. A hand holding both a foot-origin and a
+// hand-origin red three needs two separate play_red_three calls (see
+// onPlayRedThree/splitByFootOrigin); this fires once after each,
+// eventually drawing once the hand is clear of both.
 watch(
   () => [props.gameStore.myHand, props.gameStore.canDraw] as const,
   ([hand, canDraw]) => {
     if (!canDraw) return
     const heldRedThrees = hand.filter(isRedThree)
 
-    if (heldRedThrees.length === 0) {
-      if (awaitingRedThreeDraw.value) {
-        awaitingRedThreeDraw.value = false
-        props.gameStore.drawFromDeck()
-      }
-      return
-    }
-
-    if (settings.autoPlayRedThrees) {
-      const { footIds, handIds } = splitByFootOrigin(heldRedThrees, props.gameStore.footOriginCardIds)
-      awaitingRedThreeDraw.value = true
-      if (footIds.length > 0) {
-        props.gameStore.playRedThree(footIds, true)
-      } else {
-        props.gameStore.playRedThree(handIds, false)
-      }
+    if (heldRedThrees.length === 0 && awaitingRedThreeDraw.value) {
+      awaitingRedThreeDraw.value = false
+      props.gameStore.drawFromDeck()
     }
   },
-  // A red three can already be sitting in hand the moment this mounts
-  // (e.g. reloading mid-turn) — this shouldn't need a subsequent hand
-  // change to notice that and auto-play it.
-  { immediate: true },
 )
 </script>
 

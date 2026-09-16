@@ -759,55 +759,6 @@ describe('TeamMelds', () => {
       expect(wrapper.emitted('melded')).toHaveLength(1)
     })
 
-    it('auto-plays every red three in hand at the start of a turn when the setting is enabled', () => {
-      useSettingsStore().autoPlayRedThrees = true
-      const gameStore = useGameStore()
-      gameStore.handleState(
-        baseState({
-          phase: PhaseDrawing,
-          hand: {
-            201: { id: 201, suit: Hearts, rank: Three },
-            202: { id: 202, suit: Diamonds, rank: Three },
-            203: { id: 203, suit: Hearts, rank: Four },
-          },
-        }),
-      )
-
-      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
-
-      expect(send).toHaveBeenCalledWith('play_red_three', { cardIds: [201, 202], fromFoot: false })
-    })
-
-    it('does not auto-play when the setting is disabled', () => {
-      const gameStore = useGameStore()
-      gameStore.handleState(
-        baseState({
-          phase: PhaseDrawing,
-          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
-        }),
-      )
-
-      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
-
-      expect(send).not.toHaveBeenCalled()
-    })
-
-    it('does not auto-play when it is not this player\'s turn to draw', () => {
-      useSettingsStore().autoPlayRedThrees = true
-      const gameStore = useGameStore()
-      gameStore.handleState(
-        baseState({
-          phase: PhaseDrawing,
-          isYourTurn: false,
-          hand: { 201: { id: 201, suit: Hearts, rank: Three } },
-        }),
-      )
-
-      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
-
-      expect(send).not.toHaveBeenCalled()
-    })
-
     it('auto-draws once no red three remains in hand after this client played one', async () => {
       const gameStore = useGameStore()
       gameStore.handleState(

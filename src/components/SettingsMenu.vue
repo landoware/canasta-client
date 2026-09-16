@@ -51,11 +51,6 @@ const isOpen = ref(false);
           <option :value="MeldsPositionTop" class="text-black">Top (near partner's hand)</option>
         </select>
       </label>
-
-      <label class="flex items-center gap-2">
-        <input v-model="settings.autoPlayRedThrees" type="checkbox" />
-        <span>Auto-play red threes</span>
-      </label>
     </div>
 
     <button type="button" class="flex-1 bg-black/40" aria-label="Close settings" @click="isOpen = false"></button>
