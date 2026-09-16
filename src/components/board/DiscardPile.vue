@@ -21,6 +21,7 @@ function handleClick(): void {
     type="button"
     class="relative aspect-769/1065 w-[calc(var(--card-base-width)*var(--card-scale,1)*0.75)] transition-transform disabled:opacity-50 disabled:cursor-not-allowed enabled:cursor-pointer enabled:hover:-translate-y-1"
     :disabled="disabled"
+    data-discard-pile
     :aria-label="`Discard pile, ${count} cards`"
     @click="handleClick"
   >

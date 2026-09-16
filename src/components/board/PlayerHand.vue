@@ -189,7 +189,7 @@ function onCardClick(cardId: number): void {
           isSelected(layout.card.id)
             ? '[filter:drop-shadow(0_0_6px_var(--color-card-blue))_drop-shadow(0_0_14px_var(--color-card-blue))]'
             : '',
-        ]" :style="layout.style" :data-selected="isSelected(layout.card.id)"
+        ]" :style="layout.style" :data-card-id="layout.card.id" :data-selected="isSelected(layout.card.id)"
         :data-dragging="layout.isDragged" @click="onCardClick(layout.card.id)"
         @pointerdown="onPointerDown($event, layout.card.id, i)" @pointermove="onPointerMove"
         @pointerup="onPointerUp" @pointercancel="onPointerCancel" @mouseenter="hoveredId = layout.card.id"

@@ -13,6 +13,7 @@ import {
   otherHandHalfHeightExpr,
   footRotationOvershootExpr,
 } from '@/utils/handLayout'
+import { OTHER_HAND_ROTATE_DEG } from '@/utils/seatLayout'
 
 const props = defineProps<{
   name: string
@@ -34,8 +35,10 @@ const STACK_DEPTH = 4
 
 // left rotates the opposite way from right so both sides' card shadows
 // (and, in the template, the name text) tip toward screen center rather
-// than mirroring each other outward off their own edge.
-const ROTATE_DEG: Record<'top' | 'left' | 'right', number> = { top: 0, left: -90, right: 90 }
+// than mirroring each other outward off their own edge. Shared with
+// useDiscardFlightWatcher (see @/utils/seatLayout) so a discard ghost can
+// start at the same rotation the real card was resting at.
+const ROTATE_DEG = OTHER_HAND_ROTATE_DEG
 
 const isFanned = computed(() => props.handLength <= FAN_THRESHOLD)
 
@@ -127,6 +130,7 @@ const footDynamicStyle = computed(() => {
   >
     <div
       class="relative"
+      :data-seat-hand="position"
       :class="
         position === 'top'
           ? 'h-[calc(var(--card-base-width)*var(--card-scale,1)*0.75*1065/769)] w-full max-w-5xl'

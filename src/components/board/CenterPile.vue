@@ -13,6 +13,7 @@ import {
   wouldStrandHand,
   completesLastCanastaAllowingOneCard,
 } from '@/utils/cardHelpers'
+import { useDiscardFlightWatcher } from '@/composables/useDiscardFlightWatcher'
 import DeckPile from './DeckPile.vue'
 import DiscardPile from './DiscardPile.vue'
 
@@ -26,6 +27,8 @@ const props = defineProps<{
   selectedCardIds: Set<number>
 }>()
 const emit = defineEmits<{ played: [] }>()
+
+const { displayTopCard } = useDiscardFlightWatcher(props.gameStore)
 
 function onDraw(): void {
   props.gameStore.drawFromDeck()
@@ -98,7 +101,7 @@ function onDiscardPileClick(): void {
     <div class="flex items-center justify-center gap-[clamp(1.5rem,5vw,4rem)] pointer-events-auto">
       <DeckPile :count="gameStore.deckCount" :disabled="!gameStore.canDraw" @draw="onDraw" />
       <DiscardPile
-        :top-card="gameStore.discardTopCard"
+        :top-card="displayTopCard"
         :count="gameStore.discardCount"
         :disabled="!canDiscard && !canPickUpPile"
         @click="onDiscardPileClick"

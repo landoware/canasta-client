@@ -2,6 +2,7 @@
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import SettingsMenu from '@/components/SettingsMenu.vue'
+import CardFlightLayer from '@/components/board/CardFlightLayer.vue'
 
 // There's no app-wide connection to open here: a websocket now always
 // targets one specific room (/rooms/{code}/ws?name=...), so connecting
@@ -23,6 +24,7 @@ const settings = useSettingsStore()
   >
     <RouterView />
     <SettingsMenu />
+    <CardFlightLayer />
 
     <!-- Global error/notification toasts -->
     <div class="toasts font-rs-bold">

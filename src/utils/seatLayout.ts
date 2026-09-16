@@ -30,3 +30,13 @@ export function otherPlayerAtSeat<T>(
   const index = seatOrder.indexOf(seatIndex)
   return index === -1 ? undefined : players[index]
 }
+
+// How far OtherPlayerHand.vue rotates each seat's cards (see its own
+// ROTATE_DEG comment for why left/right mirror each other). Shared with
+// useDiscardFlightWatcher so a discard ghost can start at the same rotation
+// the real card was resting at, rather than popping upright at liftoff.
+export const OTHER_HAND_ROTATE_DEG: Record<'top' | 'left' | 'right', number> = {
+  top: 0,
+  left: -90,
+  right: 90,
+}
