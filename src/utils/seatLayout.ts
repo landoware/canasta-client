@@ -40,3 +40,11 @@ export const OTHER_HAND_ROTATE_DEG: Record<'top' | 'left' | 'right', number> = {
   left: -90,
   right: 90,
 }
+
+// OpponentMelds.vue rotates its two bands independently of any specific
+// seat (melds always on the left at -90deg, canastas always on the right
+// at +90deg — see its own comment), unlike an opponent's *hand*, which
+// rotates per seat position. Shared by useMeldFlightWatcher and
+// useDrawFlightWatcher so both agree on these without duplicating them.
+export const OPPONENT_MELDS_ROTATE_DEG = -90
+export const OPPONENT_CANASTAS_ROTATE_DEG = 90

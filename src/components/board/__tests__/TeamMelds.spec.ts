@@ -101,6 +101,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const [first, second] = wrapper.findAllComponents(MeldRow)
@@ -119,6 +120,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const containers = wrapper.findAll('.fixed.inset-x-0')
@@ -138,6 +140,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const containers = wrapper.findAll('.fixed.inset-x-0')
@@ -158,6 +161,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101, 102, 103]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
@@ -176,6 +180,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101, 102]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       }, // only 2 cards
     })
 
@@ -192,6 +197,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101, 102, 103]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -211,6 +217,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101, 102, 103]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -227,6 +234,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101, 102, 103]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -243,6 +251,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101, 102, 103]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     wrapper.findComponent(MeldRow).vm.$emit('create')
@@ -261,6 +270,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
@@ -279,6 +289,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -312,6 +323,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -328,6 +340,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -362,6 +375,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
 
@@ -395,6 +409,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     await wrapper.findComponent(Button).trigger('click')
@@ -420,6 +435,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       }, // a Four, matches the staging meld
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -445,6 +461,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -469,6 +486,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       }, // nothing selected
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -493,6 +511,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -518,6 +537,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -543,6 +563,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -567,6 +588,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
@@ -592,6 +614,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       }, // nothing selected, so meld 1 isn't clickable
     })
     wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
@@ -610,6 +633,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       }, // a Four, matches the default canasta
     })
     const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -629,6 +653,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([201]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -646,6 +671,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -663,6 +689,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set([101]),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       },
     })
     wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('select-group', 2)
@@ -681,6 +708,7 @@ describe('TeamMelds', () => {
         selectedCardIds: new Set<number>(),
         displayMelds: gameStore.myTeamMelds,
         displayCanastas: gameStore.myTeamCanastas,
+        displayRedThrees: gameStore.myRedThrees,
       }, // nothing selected, so canasta 2 isn't clickable
     })
     wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('select-group', 2)
@@ -704,6 +732,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([101, 102, 103]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
 
@@ -720,6 +749,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([101, 102, 103]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
 
@@ -736,6 +766,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([101, 102]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -753,6 +784,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([101, 102]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -770,6 +802,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([101, 102]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -787,6 +820,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([101, 102]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -841,6 +875,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([501]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -876,6 +911,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([501]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -902,6 +938,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([501]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
@@ -921,6 +958,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set<number>(),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -941,6 +979,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set<number>(),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -963,6 +1002,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([201]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
@@ -988,6 +1028,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set<number>(),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       expect(none.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
@@ -998,6 +1039,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([202]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       expect(wrongCard.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
@@ -1008,6 +1050,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([201, 202]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       expect(mixed.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
@@ -1028,6 +1071,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([201]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
 
@@ -1049,6 +1093,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([201]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('create')
@@ -1072,6 +1117,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set([201]),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
       wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('create')
@@ -1100,6 +1146,7 @@ describe('TeamMelds', () => {
           selectedCardIds: new Set<number>(),
           displayMelds: gameStore.myTeamMelds,
           displayCanastas: gameStore.myTeamCanastas,
+          displayRedThrees: gameStore.myRedThrees,
         },
       })
 

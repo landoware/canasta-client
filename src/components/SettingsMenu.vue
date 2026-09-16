@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import {
   useSettingsStore,
   MIN_CARD_SCALE,
@@ -7,10 +8,36 @@ import {
   MeldsPositionBottom,
   MeldsPositionTop,
 } from "@/stores/settings";
+import { useGameStore } from "@/stores/game";
+import { useWebSocketStore } from "@/stores/websocket";
 import { SORT_METHOD_OPTIONS } from "@/utils/handSort";
+import Button from "@/components/Button.vue";
 
 const settings = useSettingsStore();
 const isOpen = ref(false);
+
+const route = useRoute();
+const router = useRouter();
+const gameStore = useGameStore();
+const wsStore = useWebSocketStore();
+
+// Only the real single-seat game board (/game/:roomCode) has one player to
+// leave — /join/:roomCode (LobbyView) already has its own Leave button, and
+// /demo's 4 concurrent local seats have no single "leave" concept.
+const isInGame = computed(() => route.path.startsWith("/game/"));
+
+function leaveGame(): void {
+  // Mirrors LobbyView.vue's leave() exactly: there's no server-side
+  // "vacate seat" — leaving just closes the connection, and the seat stays
+  // reserved for this name if the room is reopened (see
+  // internal/room.Room's disconnect handling), so the game continues
+  // uninterrupted for the other 3 seats and this player can rejoin with
+  // the same room code + name later.
+  wsStore.disconnect();
+  gameStore.clearGameState();
+  isOpen.value = false;
+  void router.push("/");
+}
 </script>
 
 <template>
@@ -51,6 +78,8 @@ const isOpen = ref(false);
           <option :value="MeldsPositionTop" class="text-black">Top (near partner's hand)</option>
         </select>
       </label>
+
+      <Button v-if="isInGame" label="Leave Game" class="mt-auto w-full" @click="leaveGame()" />
     </div>
 
     <button type="button" class="flex-1 bg-black/40" aria-label="Close settings" @click="isOpen = false"></button>

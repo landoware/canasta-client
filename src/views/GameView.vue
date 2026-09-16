@@ -4,6 +4,7 @@ import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import { useSortableHand } from '@/composables/useSortableHand'
 import { useMeldFlightWatcher } from '@/composables/useMeldFlightWatcher'
+import { useDrawFlightWatcher } from '@/composables/useDrawFlightWatcher'
 import { handHalfWidthExpr } from '@/utils/handLayout'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
@@ -34,11 +35,16 @@ const settings = useSettingsStore()
 const { displayMyTeamMelds, displayMyTeamCanastas, displayOpponentMelds, displayOpponentCanastas } =
   useMeldFlightWatcher(gameStore)
 
+// Owned here too, same reasoning — TeamMelds/OpponentMelds both need its
+// red-threes output, and the hand fan needs displayMyHand instead of the
+// live gameStore.myHand so a drawn card doesn't reveal its face before its
+// face-down ghost lands.
+const { displayMyHand, displayMyRedThrees, displayOpponentRedThrees } = useDrawFlightWatcher(gameStore)
+
 // Hand order is local UI state, not derived fresh from gameStore.myHand
 // every render — see useSortableHand for why (keeps the arrangement
 // stable across draws/discards instead of resorting to id order).
-const myHand = computed(() => gameStore.myHand)
-const { orderedCards: handCards, sort: sortHandNow, moveCard } = useSortableHand(myHand)
+const { orderedCards: handCards, sort: sortHandNow, moveCard } = useSortableHand(displayMyHand)
 
 function onSortClick(): void {
   sortHandNow(settings.sortMethod)
@@ -96,12 +102,14 @@ function clearSelection(): void {
     :game-store="gameStore"
     :display-melds="displayOpponentMelds"
     :display-canastas="displayOpponentCanastas"
+    :display-red-threes="displayOpponentRedThrees"
   />
   <TeamMelds
     :game-store="gameStore"
     :selected-card-ids="selectedCardIds"
     :display-melds="displayMyTeamMelds"
     :display-canastas="displayMyTeamCanastas"
+    :display-red-threes="displayMyRedThrees"
     @melded="clearSelection"
   />
   <PlayerHand

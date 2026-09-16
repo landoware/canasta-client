@@ -1,6 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import SettingsMenu from '../SettingsMenu.vue'
 import {
   useSettingsStore,
@@ -9,15 +10,46 @@ import {
   MeldsPositionBottom,
   MeldsPositionTop,
 } from '@/stores/settings'
+import { useGameStore } from '@/stores/game'
+import { useWebSocketStore } from '@/stores/websocket'
 import { SORT_METHOD_OPTIONS, SortRankDescending } from '@/utils/handSort'
 
+vi.mock('@/stores/websocket', () => ({
+  useWebSocketStore: vi.fn(),
+}))
+
+async function mountSettingsMenu(path = '/') {
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [{ path: '/:pathMatch(.*)*', component: { template: '<div />' } }],
+  })
+  void router.push(path)
+  await router.isReady()
+  const wrapper = mount(SettingsMenu, { global: { plugins: [router] } })
+  return { wrapper, router }
+}
+
 describe('SettingsMenu', () => {
+  let disconnect: ReturnType<typeof vi.fn>
+
   beforeEach(() => {
     setActivePinia(createPinia())
+    disconnect = vi.fn()
+    vi.mocked(useWebSocketStore).mockReturnValue({
+      ws: null,
+      connected: false,
+      reconnecting: false,
+      reconnectAttempts: 0,
+      createRoom: vi.fn(),
+      connect: vi.fn(),
+      send: vi.fn(),
+      disconnect,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
   })
 
   it('is closed until the hamburger button is clicked', async () => {
-    const wrapper = mount(SettingsMenu)
+    const { wrapper } = await mountSettingsMenu()
 
     expect(wrapper.find('input[type="range"]').exists()).toBe(false)
 
@@ -26,7 +58,7 @@ describe('SettingsMenu', () => {
   })
 
   it('closes when the close button is clicked', async () => {
-    const wrapper = mount(SettingsMenu)
+    const { wrapper } = await mountSettingsMenu()
     await wrapper.find('button[aria-label="Open settings"]').trigger('click')
 
     await wrapper.find('button[aria-label="Close settings"]').trigger('click')
@@ -34,7 +66,7 @@ describe('SettingsMenu', () => {
   })
 
   it('exposes the card scale bounds on the slider and binds the store', async () => {
-    const wrapper = mount(SettingsMenu)
+    const { wrapper } = await mountSettingsMenu()
     const settings = useSettingsStore()
     await wrapper.find('button[aria-label="Open settings"]').trigger('click')
 
@@ -47,7 +79,7 @@ describe('SettingsMenu', () => {
   })
 
   it('renders one option per sort method in the dropdown, defaulting to rank ascending', async () => {
-    const wrapper = mount(SettingsMenu)
+    const { wrapper } = await mountSettingsMenu()
     await wrapper.find('button[aria-label="Open settings"]').trigger('click')
 
     const select = wrapper.find('select')
@@ -57,7 +89,7 @@ describe('SettingsMenu', () => {
   })
 
   it('updates the sortMethod setting when a different option is chosen', async () => {
-    const wrapper = mount(SettingsMenu)
+    const { wrapper } = await mountSettingsMenu()
     const settings = useSettingsStore()
     await wrapper.find('button[aria-label="Open settings"]').trigger('click')
 
@@ -67,7 +99,7 @@ describe('SettingsMenu', () => {
   })
 
   it('defaults the melds-position dropdown to bottom and updates the setting', async () => {
-    const wrapper = mount(SettingsMenu)
+    const { wrapper } = await mountSettingsMenu()
     const settings = useSettingsStore()
     await wrapper.find('button[aria-label="Open settings"]').trigger('click')
 
@@ -76,5 +108,39 @@ describe('SettingsMenu', () => {
 
     await meldsSelect.setValue(MeldsPositionTop)
     expect(settings.meldsPosition).toBe(MeldsPositionTop)
+  })
+
+  describe('leaving the game', () => {
+    it('hides the Leave Game button outside the game board', async () => {
+      const { wrapper } = await mountSettingsMenu('/join/ABCD')
+      await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+      const leaveButton = wrapper.findAll('button').find((b) => b.text() === 'Leave Game')
+      expect(leaveButton).toBeUndefined()
+    })
+
+    it('shows the Leave Game button while on the game board', async () => {
+      const { wrapper } = await mountSettingsMenu('/game/ABCD')
+      await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+      const leaveButton = wrapper.findAll('button').find((b) => b.text() === 'Leave Game')
+      expect(leaveButton).not.toBeUndefined()
+    })
+
+    it('disconnects, clears game state, closes the menu, and navigates home when clicked', async () => {
+      const { wrapper, router } = await mountSettingsMenu('/game/ABCD')
+      const gameStore = useGameStore()
+      const clearGameStateSpy = vi.spyOn(gameStore, 'clearGameState')
+      await wrapper.find('button[aria-label="Open settings"]').trigger('click')
+
+      const leaveButton = wrapper.findAll('button').find((b) => b.text() === 'Leave Game')!
+      await leaveButton.trigger('click')
+      await router.isReady()
+
+      expect(disconnect).toHaveBeenCalledTimes(1)
+      expect(clearGameStateSpy).toHaveBeenCalledTimes(1)
+      expect(wrapper.find('input[type="range"]').exists()).toBe(false)
+      expect(router.currentRoute.value.path).toBe('/')
+    })
   })
 })

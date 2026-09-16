@@ -25,6 +25,11 @@ export const isWildCard = (card: Card): boolean => {
   return card.rank === Two || card.rank === Joker
 }
 
+// Sentinel id for the red-threes pseudo-group rendered alongside a team's
+// canastas (TeamMelds.vue/OpponentMelds.vue) — real meld/canasta group ids
+// are always real card ids, always >= 0, so -1 can never collide with one.
+export const RED_THREES_GROUP_ID = -1
+
 export const isRedThree = (card: Card): boolean => {
   return card.rank === Three && (card.suit === Hearts || card.suit === Diamonds)
 }

@@ -8,18 +8,31 @@
 // along the left/right axis instead. Each band sits halfway between that
 // side's opponent and the draw/discard pile, and is rotated to match
 // that opponent's own orientation (see OtherPlayerHand's ROTATE_DEG).
+import { computed } from 'vue'
 import type { GameStore } from '@/stores/game'
 import type { Card } from '@/types/canasta'
+import { RED_THREES_GROUP_ID } from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
 import FitToArea from './FitToArea.vue'
 
-defineProps<{
+const props = defineProps<{
   gameStore: GameStore
   // Display-frozen versions of gameStore.opponentMelds/opponentCanastas —
   // see TeamMelds.vue's identical props for why.
   displayMelds: { id: number; cards: Card[] }[]
   displayCanastas: { id: number; cards: Card[] }[]
+  // Display-frozen version of gameStore.opponentRedThrees — see
+  // TeamMelds.vue's identical prop for why.
+  displayRedThrees: Card[]
 }>()
+
+// Mirrors TeamMelds.vue's own redThreeGroups exactly, folded into this
+// team's canastas band since there's no separate red-threes band here.
+const redThreeGroups = computed(() =>
+  props.displayRedThrees.length > 0
+    ? [{ id: RED_THREES_GROUP_ID, cards: props.displayRedThrees }]
+    : [],
+)
 </script>
 
 <template>
@@ -47,7 +60,12 @@ defineProps<{
   >
     <div class="rotate-90">
       <FitToArea max-width="36rem" max-height="clamp(7rem, 14vw, 11rem)" v-slot="{ compact }">
-        <MeldRow :groups="displayCanastas" :compact="compact" counter-rotate="right" />
+        <MeldRow
+          data-canastas-row="opponent"
+          :groups="[...displayCanastas, ...redThreeGroups]"
+          :compact="compact"
+          counter-rotate="right"
+        />
       </FitToArea>
     </div>
   </div>

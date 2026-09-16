@@ -126,6 +126,10 @@ function defineGameStore(instanceId: string) {
     () => gameState.value?.otherCanastas ?? [],
   )
 
+  const opponentRedThrees: ComputedRef<Card[]> = computed(
+    () => gameState.value?.otherRedThrees ?? [],
+  )
+
   // Whether myTeamMelds are the team's official melds (true) or this
   // player's own not-yet-committed staging melds (false) — see
   // internal/canasta/presentation.go's ClientState.GoneDown. It's an
@@ -418,6 +422,7 @@ function defineGameStore(instanceId: string) {
     myRedThrees,
     opponentMelds,
     opponentCanastas,
+    opponentRedThrees,
     hasGoneDown,
     myHasFoot,
     myMadeCanasta,

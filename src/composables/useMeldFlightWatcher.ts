@@ -17,6 +17,7 @@ import type { Card, Meld, Canasta } from '@/types/canasta'
 import type { StateMessage } from '@/types/protocol'
 import type { GameStore } from '@/stores/game'
 import { resolveHandCardOrigin } from '@/utils/handOrigin'
+import { OPPONENT_MELDS_ROTATE_DEG, OPPONENT_CANASTAS_ROTATE_DEG } from '@/utils/seatLayout'
 import { useCardFlight, rectOf } from '@/composables/useCardFlight'
 import type { FlightRect } from '@/composables/useCardFlight'
 
@@ -35,13 +36,6 @@ interface Batch {
 }
 
 const STAGGER_MS = 50
-
-// OpponentMelds.vue rotates its two bands independently of any specific
-// seat (melds always on the left at -90deg, canastas always on the right
-// at +90deg — see its own comment), unlike an opponent's *hand*, which
-// rotates per seat position. TeamMelds.vue's own bands are never rotated.
-const OPPONENT_MELDS_ROTATE_DEG = -90
-const OPPONENT_CANASTAS_ROTATE_DEG = 90
 
 function idsOf(cards: Card[]): Set<number> {
   return new Set(cards.map((c) => c.id))

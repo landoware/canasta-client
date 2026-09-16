@@ -22,6 +22,7 @@ import {
   wouldStrandHand,
   completesLastCanastaAllowingOneCard,
   splitByFootOrigin,
+  RED_THREES_GROUP_ID,
 } from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
 import FitToArea from './FitToArea.vue'
@@ -37,6 +38,10 @@ const props = defineProps<{
   // logic below still reads the live gameStore values on purpose.
   displayMelds: { id: number; cards: Card[] }[]
   displayCanastas: { id: number; cards: Card[] }[]
+  // Display-frozen version of gameStore.myRedThrees from
+  // useDrawFlightWatcher — same reasoning as displayMelds/displayCanastas
+  // above, now for a drawn red three's flight to this tile.
+  displayRedThrees: Card[]
 }>()
 const emit = defineEmits<{ melded: [] }>()
 const settings = useSettingsStore()
@@ -181,12 +186,12 @@ function onGoDown(): void {
 
 // Red threes display alongside the canastas — like a canasta, a red
 // three is a completed, scored group rather than something still in
-// play. Sentinel id: real group ids come from actual card ids (always
-// >= 0), so -1 can never collide with one.
-const RED_THREES_GROUP_ID = -1
+// play. displayRedThrees (not the live gameStore.myRedThrees) so a
+// deck-drawn red three's tile doesn't pop before its ghost lands — see
+// useDrawFlightWatcher.
 const redThreeGroups = computed(() =>
-  props.gameStore.myRedThrees.length > 0
-    ? [{ id: RED_THREES_GROUP_ID, cards: props.gameStore.myRedThrees }]
+  props.displayRedThrees.length > 0
+    ? [{ id: RED_THREES_GROUP_ID, cards: props.displayRedThrees }]
     : [],
 )
 
@@ -269,6 +274,7 @@ watch(
   >
     <FitToArea max-width="min(90vw, 64rem)" max-height="clamp(10rem, 24vh, 20rem)" v-slot="{ compact }">
       <MeldRow
+        data-canastas-row="mine"
         :groups="[...displayCanastas, ...redThreeGroups]"
         :show-create-affordance="canPlayRedThree"
         :clickable-group-ids="burnableCanastaIds"

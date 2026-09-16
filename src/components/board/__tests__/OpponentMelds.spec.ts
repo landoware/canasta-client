@@ -76,6 +76,7 @@ describe('OpponentMelds', () => {
         gameStore,
         displayMelds: gameStore.opponentMelds,
         displayCanastas: gameStore.opponentCanastas,
+        displayRedThrees: gameStore.opponentRedThrees,
       },
     })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
@@ -93,6 +94,7 @@ describe('OpponentMelds', () => {
         gameStore,
         displayMelds: gameStore.opponentMelds,
         displayCanastas: gameStore.opponentCanastas,
+        displayRedThrees: gameStore.opponentRedThrees,
       },
     })
     const bands = wrapper.findAll('.fixed.inset-y-0')
@@ -111,6 +113,7 @@ describe('OpponentMelds', () => {
         gameStore,
         displayMelds: gameStore.opponentMelds,
         displayCanastas: gameStore.opponentCanastas,
+        displayRedThrees: gameStore.opponentRedThrees,
       },
     })
 
@@ -128,6 +131,7 @@ describe('OpponentMelds', () => {
         gameStore,
         displayMelds: gameStore.opponentMelds,
         displayCanastas: gameStore.opponentCanastas,
+        displayRedThrees: gameStore.opponentRedThrees,
       },
     })
     const bands = wrapper.findAll('.fixed.inset-y-0')
@@ -150,6 +154,7 @@ describe('OpponentMelds', () => {
         gameStore,
         displayMelds: gameStore.opponentMelds,
         displayCanastas: gameStore.opponentCanastas,
+        displayRedThrees: gameStore.opponentRedThrees,
       },
     })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
