@@ -101,6 +101,23 @@ export const isValidRedThreePlay = (cards: Card[]): boolean => {
   return cards.length > 0 && cards.every(isRedThree)
 }
 
+// Splits a batch of red threes into the ones that arrived via a foot
+// pickup vs. everything else (initial hand or a stock draw) — the wire
+// message only carries one fromFoot flag per play_red_three call, so a
+// mixed batch has to be sent as (up to) two separate calls. See
+// game.ts's footOriginCardIds for how membership is tracked.
+export const splitByFootOrigin = (
+  cards: Card[],
+  footOriginCardIds: Set<number>,
+): { footIds: number[]; handIds: number[] } => {
+  const footIds: number[] = []
+  const handIds: number[] = []
+  for (const card of cards) {
+    ;(footOriginCardIds.has(card.id) ? footIds : handIds).push(card.id)
+  }
+  return { footIds, handIds }
+}
+
 // Mirrors internal/canasta/moves.go's Game.AddToMeld exactly, including
 // checking wildcard count cumulatively across the whole batch being added
 // (the server increments meld.WildCount once per wild card in the loop

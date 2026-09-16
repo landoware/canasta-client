@@ -69,6 +69,21 @@ function defineGameStore(instanceId: string) {
   // non-null, and respondToGoOutRequest clears it either way.
   const goOutRequest: Ref<{ askerName: string } | null> = ref(null)
 
+  // Card ids currently in hand that arrived via pickUpFoot() rather than
+  // the initial deal or a stock draw — see pickUpFoot/handleState below
+  // for how this gets populated/pruned. TeamMelds.vue uses this to send
+  // the correct fromFoot flag when playing red threes (foot-origin red
+  // threes don't earn a replacement draw — see PlayRedThree in the
+  // server's moves.go).
+  const footOriginCardIds: Ref<Set<number>> = ref(new Set())
+
+  // Snapshot of hand card ids taken right before a pickUpFoot() call goes
+  // out — diffed against the hand in the next handleState to see exactly
+  // which ids the foot pickup added. Cleared on that same state (or on a
+  // rejection, see handleServerError) so it never lingers to mis-tag a
+  // later, unrelated hand change.
+  let pendingFootPickupSnapshot: Set<number> | null = null
+
   let pendingJoin: { resolve: () => void; reject: (message: string) => void } | null = null
 
   // ============================================================================
@@ -226,6 +241,7 @@ function defineGameStore(instanceId: string) {
   }
 
   const pickUpFoot = (): void => {
+    pendingFootPickupSnapshot = new Set(myHand.value.map((card) => card.id))
     sendMove(TypePickUpFoot, {})
   }
 
@@ -289,6 +305,20 @@ function defineGameStore(instanceId: string) {
     gameState.value = payload
     pendingMove.value = false
 
+    const newHandIds = new Set(Object.keys(payload.hand ?? {}).map(Number))
+    if (pendingFootPickupSnapshot) {
+      for (const id of newHandIds) {
+        if (!pendingFootPickupSnapshot.has(id)) footOriginCardIds.value.add(id)
+      }
+      pendingFootPickupSnapshot = null
+    }
+    // Prune ids that left the hand (played, melded, discarded) — this
+    // also transparently clears everything on a new hand deal, since none
+    // of the old ids will appear in the fresh hand.
+    for (const id of footOriginCardIds.value) {
+      if (!newHandIds.has(id)) footOriginCardIds.value.delete(id)
+    }
+
     if (previousHand !== undefined && payload.handNumber !== previousHand) {
       addNotification(`Hand ${payload.handNumber} started!`)
     }
@@ -316,6 +346,7 @@ function defineGameStore(instanceId: string) {
     // first rejected one would silently no-op forever (canDraw/canPlay
     // are also gated on !pendingMove).
     pendingMove.value = false
+    pendingFootPickupSnapshot = null
     addError(payload.message)
   }
 
@@ -370,6 +401,7 @@ function defineGameStore(instanceId: string) {
     notifications,
     pendingMove,
     goOutRequest,
+    footOriginCardIds,
 
     // Computed
     isInLobby,

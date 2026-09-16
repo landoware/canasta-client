@@ -21,6 +21,7 @@ import {
   meetsGoDownRequirement,
   wouldStrandHand,
   completesLastCanastaAllowingOneCard,
+  splitByFootOrigin,
 } from '@/utils/cardHelpers'
 import MeldRow from './MeldRow.vue'
 import FitToArea from './FitToArea.vue'
@@ -193,7 +194,17 @@ const awaitingRedThreeDraw = ref(false)
 
 function onPlayRedThree(): void {
   if (!canPlayRedThree.value) return
-  props.gameStore.playRedThree([...props.selectedCardIds])
+  // The wire message only carries one fromFoot flag per call, so a
+  // selection mixing foot-origin and hand-origin red threes (a narrow
+  // edge case — see splitByFootOrigin) can only send one group now; the
+  // other stays selected/in hand and goes out on a follow-up click, or
+  // via the auto-play watcher below.
+  const { footIds, handIds } = splitByFootOrigin(selectedCards.value, props.gameStore.footOriginCardIds)
+  if (footIds.length > 0) {
+    props.gameStore.playRedThree(footIds, true)
+  } else {
+    props.gameStore.playRedThree(handIds, false)
+  }
   awaitingRedThreeDraw.value = true
   emit('melded')
 }
@@ -212,7 +223,11 @@ function onPlayRedThree(): void {
 // A red three played from hand always gets an immediate replacement card
 // (see PlayRedThree in moves.go), which can itself be a further red
 // three — unlike the normal draw, that path doesn't loop to clear it, so
-// this can legitimately fire more than once per turn.
+// this can legitimately fire more than once per turn. A foot-origin red
+// three (see footOriginCardIds in game.ts) gets no replacement, and each
+// firing here only sends one origin-group at a time (see
+// splitByFootOrigin) — a hand holding both kinds re-fires this watcher
+// once the first group's play round-trips, sending the other next.
 watch(
   () => [props.gameStore.myHand, props.gameStore.canDraw] as const,
   ([hand, canDraw]) => {
@@ -228,8 +243,13 @@ watch(
     }
 
     if (settings.autoPlayRedThrees) {
+      const { footIds, handIds } = splitByFootOrigin(heldRedThrees, props.gameStore.footOriginCardIds)
       awaitingRedThreeDraw.value = true
-      props.gameStore.playRedThree(heldRedThrees.map((card) => card.id))
+      if (footIds.length > 0) {
+        props.gameStore.playRedThree(footIds, true)
+      } else {
+        props.gameStore.playRedThree(handIds, false)
+      }
     }
   },
   // A red three can already be sitting in hand the moment this mounts
