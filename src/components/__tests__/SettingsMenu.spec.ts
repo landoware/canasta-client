@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import SettingsMenu from '../SettingsMenu.vue'
@@ -143,7 +143,7 @@ describe('SettingsMenu', () => {
 
       const leaveButton = wrapper.findAll('button').find((b) => b.text() === 'Leave Game')!
       await leaveButton.trigger('click')
-      await router.isReady()
+      await flushPromises()
 
       expect(disconnect).toHaveBeenCalledTimes(1)
       expect(clearGameStateSpy).toHaveBeenCalledTimes(1)
