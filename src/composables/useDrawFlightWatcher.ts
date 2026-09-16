@@ -30,7 +30,12 @@ function resolveRealCardDestination(
   mySeatIndex: number,
 ): { rect: FlightRect; rotate: number } | null {
   if (actingSeat === mySeatIndex) {
-    const rect = rectOf(document.querySelector('[data-card-id]'))
+    // The *last* matching element, not the first: PlayerHand renders cards
+    // left-to-right in hand order, and useSortableHand appends newly
+    // revealed cards to the end of that order — so the rightmost existing
+    // card is the correct stand-in for where a new one will actually land.
+    const cards = document.querySelectorAll('[data-card-id]')
+    const rect = rectOf(cards[cards.length - 1])
     return rect ? { rect, rotate: 0 } : null
   }
   return resolveOtherSeatHandRect(actingSeat, mySeatIndex)
