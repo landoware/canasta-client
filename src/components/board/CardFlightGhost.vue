@@ -17,12 +17,17 @@ const props = withDefaults(
     from: FlightRect
     to: FlightRect
     duration: number
-    // Degrees the real card was resting at (e.g. an opponent seated
-    // left/right) — the ghost starts here and animates to upright (0) as it
-    // flies, instead of popping upright the instant it appears.
-    rotate?: number
+    // Degrees the real card rests at, at liftoff (`rotateFrom`, e.g. an
+    // opponent seated left/right) and on landing (`rotateTo`, e.g. an
+    // opponent's rotated meld row) — the ghost animates between the two
+    // instead of popping to upright the instant it appears/lands.
+    rotateFrom?: number
+    rotateTo?: number
+    // Milliseconds to hold at `from` before flying — lets a multi-card
+    // batch leave in a staggered cascade instead of all at once.
+    delay?: number
   }>(),
-  { rotate: 0 },
+  { rotateFrom: 0, rotateTo: 0, delay: 0 },
 )
 const emit = defineEmits<{ arrived: [] }>()
 
@@ -39,17 +44,19 @@ function settle(): void {
 }
 
 onMounted(() => {
-  // Two rAFs, not one: the first just guarantees we're past the paint that
-  // shows the ghost at its start position — starting the transition inside
-  // that same frame risks the browser coalescing it away.
-  requestAnimationFrame(() => {
+  setTimeout(() => {
+    // Two rAFs, not one: the first just guarantees we're past the paint
+    // that shows the ghost at its start position — starting the transition
+    // inside that same frame risks the browser coalescing it away.
     requestAnimationFrame(() => {
-      playing.value = true
+      requestAnimationFrame(() => {
+        playing.value = true
+      })
     })
-  })
+  }, props.delay)
   // Fallback in case transitionend never fires (e.g. the element is
   // display:none'd by an ancestor mid-flight) — settle() is idempotent.
-  setTimeout(settle, props.duration + 100)
+  setTimeout(settle, props.delay + props.duration + 100)
 })
 
 function onTransitionEnd(event: TransitionEvent): void {
@@ -68,14 +75,14 @@ const pinStyle = computed(() => ({
 // (mismatched transform lists don't animate predictably across browsers).
 const transformStyle = computed(() => {
   if (!playing.value) {
-    return { transform: `translate(0px, 0px) scale(1, 1) rotate(${props.rotate}deg)` }
+    return { transform: `translate(0px, 0px) scale(1, 1) rotate(${props.rotateFrom}deg)` }
   }
   const dx = props.to.left + props.to.width / 2 - (props.from.left + props.from.width / 2)
   const dy = props.to.top + props.to.height / 2 - (props.from.top + props.from.height / 2)
   const sx = props.to.width / props.from.width
   const sy = props.to.height / props.from.height
   return {
-    transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(0deg)`,
+    transform: `translate(${dx}px, ${dy}px) scale(${sx}, ${sy}) rotate(${props.rotateTo}deg)`,
     transitionDuration: `${props.duration}ms`,
   }
 })

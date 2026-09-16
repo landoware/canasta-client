@@ -10,7 +10,7 @@ import { computed, ref, watch } from 'vue'
 import type { GameStore } from '@/stores/game'
 import { useSettingsStore, MeldsPositionBottom } from '@/stores/settings'
 import { PhaseDrawing, PhasePlaying, Wild } from '@/types/canasta'
-import type { Rank } from '@/types/canasta'
+import type { Card, Rank } from '@/types/canasta'
 import {
   isValidNewMeld,
   isValidAddToMeld,
@@ -27,7 +27,17 @@ import MeldRow from './MeldRow.vue'
 import FitToArea from './FitToArea.vue'
 import Button from '@/components/Button.vue'
 
-const props = defineProps<{ gameStore: GameStore; selectedCardIds: Set<number> }>()
+const props = defineProps<{
+  gameStore: GameStore
+  selectedCardIds: Set<number>
+  // Display-frozen versions of gameStore.myTeamMelds/myTeamCanastas from
+  // useMeldFlightWatcher (owned by GameView, shared with OpponentMelds) —
+  // rendered here instead of the live store values so a tile doesn't pop to
+  // its final card count before its cards' flights land. All eligibility
+  // logic below still reads the live gameStore values on purpose.
+  displayMelds: { id: number; cards: Card[] }[]
+  displayCanastas: { id: number; cards: Card[] }[]
+}>()
 const emit = defineEmits<{ melded: [] }>()
 const settings = useSettingsStore()
 
@@ -241,7 +251,8 @@ watch(
   >
     <FitToArea max-width="min(90vw, 64rem)" max-height="clamp(10rem, 24vh, 20rem)" v-slot="{ compact }">
       <MeldRow
-        :groups="gameStore.myTeamMelds"
+        data-melds-row="mine"
+        :groups="displayMelds"
         :show-create-affordance="canCreateMeld"
         :dimmed="!gameStore.hasGoneDown"
         :clickable-group-ids="addableMeldIds"
@@ -258,7 +269,7 @@ watch(
   >
     <FitToArea max-width="min(90vw, 64rem)" max-height="clamp(10rem, 24vh, 20rem)" v-slot="{ compact }">
       <MeldRow
-        :groups="[...gameStore.myTeamCanastas, ...redThreeGroups]"
+        :groups="[...displayCanastas, ...redThreeGroups]"
         :show-create-affordance="canPlayRedThree"
         :clickable-group-ids="burnableCanastaIds"
         :compact="compact"

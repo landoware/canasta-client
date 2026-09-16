@@ -71,7 +71,13 @@ describe('OpponentMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const wrapper = mount(OpponentMelds, {
+      props: {
+        gameStore,
+        displayMelds: gameStore.opponentMelds,
+        displayCanastas: gameStore.opponentCanastas,
+      },
+    })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
 
     expect(meldsRow!.props('groups')).toEqual(gameStore.opponentMelds)
@@ -82,7 +88,13 @@ describe('OpponentMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const wrapper = mount(OpponentMelds, {
+      props: {
+        gameStore,
+        displayMelds: gameStore.opponentMelds,
+        displayCanastas: gameStore.opponentCanastas,
+      },
+    })
     const bands = wrapper.findAll('.fixed.inset-y-0')
 
     expect(bands).toHaveLength(2)
@@ -94,7 +106,13 @@ describe('OpponentMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ otherMelds: [], otherCanastas: [] }))
 
-    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const wrapper = mount(OpponentMelds, {
+      props: {
+        gameStore,
+        displayMelds: gameStore.opponentMelds,
+        displayCanastas: gameStore.opponentCanastas,
+      },
+    })
 
     wrapper.findAllComponents(MeldRow).forEach((row) => {
       expect(row.props('groups')).toEqual([])
@@ -105,7 +123,13 @@ describe('OpponentMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const wrapper = mount(OpponentMelds, {
+      props: {
+        gameStore,
+        displayMelds: gameStore.opponentMelds,
+        displayCanastas: gameStore.opponentCanastas,
+      },
+    })
     const bands = wrapper.findAll('.fixed.inset-y-0')
 
     // Scoped to the wrapper div specifically (not just any descendant) —
@@ -121,7 +145,13 @@ describe('OpponentMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(OpponentMelds, { props: { gameStore } })
+    const wrapper = mount(OpponentMelds, {
+      props: {
+        gameStore,
+        displayMelds: gameStore.opponentMelds,
+        displayCanastas: gameStore.opponentCanastas,
+      },
+    })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
 
     expect(meldsRow!.props('counterRotate')).toBe('left')

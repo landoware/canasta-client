@@ -9,10 +9,17 @@
 // side's opponent and the draw/discard pile, and is rotated to match
 // that opponent's own orientation (see OtherPlayerHand's ROTATE_DEG).
 import type { GameStore } from '@/stores/game'
+import type { Card } from '@/types/canasta'
 import MeldRow from './MeldRow.vue'
 import FitToArea from './FitToArea.vue'
 
-defineProps<{ gameStore: GameStore }>()
+defineProps<{
+  gameStore: GameStore
+  // Display-frozen versions of gameStore.opponentMelds/opponentCanastas —
+  // see TeamMelds.vue's identical props for why.
+  displayMelds: { id: number; cards: Card[] }[]
+  displayCanastas: { id: number; cards: Card[] }[]
+}>()
 </script>
 
 <template>
@@ -26,7 +33,12 @@ defineProps<{ gameStore: GameStore }>()
            (matches OtherPlayerHand's own max-h-[36rem] for this same
            quadrant), maxHeight becomes the on-screen width. -->
       <FitToArea max-width="36rem" max-height="clamp(7rem, 14vw, 11rem)" v-slot="{ compact }">
-        <MeldRow :groups="gameStore.opponentMelds" :compact="compact" counter-rotate="left" />
+        <MeldRow
+          data-melds-row="opponent"
+          :groups="displayMelds"
+          :compact="compact"
+          counter-rotate="left"
+        />
       </FitToArea>
     </div>
   </div>
@@ -35,7 +47,7 @@ defineProps<{ gameStore: GameStore }>()
   >
     <div class="rotate-90">
       <FitToArea max-width="36rem" max-height="clamp(7rem, 14vw, 11rem)" v-slot="{ compact }">
-        <MeldRow :groups="gameStore.opponentCanastas" :compact="compact" counter-rotate="right" />
+        <MeldRow :groups="displayCanastas" :compact="compact" counter-rotate="right" />
       </FitToArea>
     </div>
   </div>

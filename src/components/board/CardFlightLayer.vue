@@ -18,7 +18,9 @@ const { flights, completeFlight } = useCardFlight()
       :from="flight.from"
       :to="flight.to"
       :duration="flight.duration"
-      :rotate="flight.rotate"
+      :rotate-from="flight.rotateFrom"
+      :rotate-to="flight.rotateTo"
+      :delay="flight.delay"
       class="z-[9999]"
       @arrived="completeFlight(flight.id)"
     />

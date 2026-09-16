@@ -95,7 +95,14 @@ describe('TeamMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
     const [first, second] = wrapper.findAllComponents(MeldRow)
 
     expect(first!.props('groups')).toEqual(gameStore.myTeamMelds)
@@ -106,7 +113,14 @@ describe('TeamMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState())
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
     const containers = wrapper.findAll('.fixed.inset-x-0')
 
     expect(containers[0]!.classes()).toContain('top-3/4')
@@ -118,7 +132,14 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState())
     useSettingsStore().meldsPosition = MeldsPositionTop
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
     const containers = wrapper.findAll('.fixed.inset-x-0')
 
     expect(containers[0]!.classes()).toContain('top-1/4')
@@ -132,7 +153,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101, 102, 103]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
 
@@ -145,18 +171,28 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhasePlaying }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101, 102]) }, // only 2 cards
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101, 102]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      }, // only 2 cards
     })
 
     expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
   })
 
-  it('hides the create-meld affordance when it is not this seat\'s turn at all', () => {
+  it("hides the create-meld affordance when it is not this seat's turn at all", () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ isYourTurn: false }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101, 102, 103]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
 
     expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
@@ -170,7 +206,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhaseDrawing, goneDown: false, canGoOut: true }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101, 102, 103]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
 
     expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(true)
@@ -181,7 +222,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhaseDrawing, goneDown: true }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101, 102, 103]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
 
     expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
@@ -192,7 +238,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101, 102, 103]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     wrapper.findComponent(MeldRow).vm.$emit('create')
 
@@ -204,7 +255,14 @@ describe('TeamMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ goneDown: false }))
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
     const [meldsRow, canastasRow] = wrapper.findAllComponents(MeldRow)
 
     expect(meldsRow!.props('dimmed')).toBe(true)
@@ -215,7 +273,14 @@ describe('TeamMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ goneDown: true }))
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
 
     expect(wrapper.findComponent(MeldRow).props('dimmed')).toBe(false)
   })
@@ -230,14 +295,25 @@ describe('TeamMelds', () => {
           {
             id: 1,
             rank: Four,
-            cards: Array.from({ length: 10 }, (_, i) => ({ id: 900 + i, suit: Hearts, rank: Four })),
+            cards: Array.from({ length: 10 }, (_, i) => ({
+              id: 900 + i,
+              suit: Hearts,
+              rank: Four,
+            })),
             wildCount: 0,
           },
         ],
       }),
     )
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
 
     expect(wrapper.findComponent(Button).exists()).toBe(true)
   })
@@ -246,7 +322,14 @@ describe('TeamMelds', () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ phase: PhasePlaying, handNumber: 1 })) // default meld is only 5pts
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
 
     expect(wrapper.findComponent(Button).exists()).toBe(false)
   })
@@ -262,14 +345,25 @@ describe('TeamMelds', () => {
           {
             id: 1,
             rank: Four,
-            cards: Array.from({ length: 10 }, (_, i) => ({ id: 900 + i, suit: Hearts, rank: Four })),
+            cards: Array.from({ length: 10 }, (_, i) => ({
+              id: 900 + i,
+              suit: Hearts,
+              rank: Four,
+            })),
             wildCount: 0,
           },
         ],
       }),
     )
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
 
     expect(wrapper.findComponent(Button).exists()).toBe(false)
   })
@@ -284,14 +378,25 @@ describe('TeamMelds', () => {
           {
             id: 1,
             rank: Four,
-            cards: Array.from({ length: 10 }, (_, i) => ({ id: 900 + i, suit: Hearts, rank: Four })),
+            cards: Array.from({ length: 10 }, (_, i) => ({
+              id: 900 + i,
+              suit: Hearts,
+              rank: Four,
+            })),
             wildCount: 0,
           },
         ],
       }),
     )
 
-    const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+    const wrapper = mount(TeamMelds, {
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
+    })
     await wrapper.findComponent(Button).trigger('click')
 
     expect(send).toHaveBeenCalledWith('go_down', {})
@@ -303,12 +408,19 @@ describe('TeamMelds', () => {
       baseState({
         phase: PhasePlaying,
         goneDown: false,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) }, // a Four, matches the staging meld
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      }, // a Four, matches the staging meld
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -321,12 +433,19 @@ describe('TeamMelds', () => {
       baseState({
         phase: PhasePlaying,
         goneDown: true,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -338,29 +457,43 @@ describe('TeamMelds', () => {
     gameStore.handleState(
       baseState({
         phase: PhasePlaying,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      }, // nothing selected
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
     expect(meldsRow.props('clickableGroupIds')).toEqual(new Set())
   })
 
-  it('hides clickability when it is not this seat\'s turn at all', () => {
+  it("hides clickability when it is not this seat's turn at all", () => {
     const gameStore = useGameStore()
     gameStore.handleState(
       baseState({
         isYourTurn: false,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -373,12 +506,19 @@ describe('TeamMelds', () => {
       baseState({
         phase: PhaseDrawing,
         goneDown: false,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -391,12 +531,19 @@ describe('TeamMelds', () => {
       baseState({
         phase: PhaseDrawing,
         goneDown: true,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -408,12 +555,19 @@ describe('TeamMelds', () => {
     gameStore.handleState(
       baseState({
         phase: PhasePlaying,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
 
@@ -426,12 +580,19 @@ describe('TeamMelds', () => {
     gameStore.handleState(
       baseState({
         phase: PhasePlaying,
-        ourMelds: [{ id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 }],
+        ourMelds: [
+          { id: 1, rank: Four, cards: [{ id: 2, suit: Hearts, rank: Four }], wildCount: 0 },
+        ],
       }),
     )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected, so meld 1 isn't clickable
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      }, // nothing selected, so meld 1 isn't clickable
     })
     wrapper.findAllComponents(MeldRow)[0]!.vm.$emit('select-group', 1)
 
@@ -444,7 +605,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhasePlaying }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) }, // a Four, matches the default canasta
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      }, // a Four, matches the default canasta
     })
     const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
@@ -453,22 +619,34 @@ describe('TeamMelds', () => {
 
   it('hides canasta clickability when the selection does not match the canasta rank', () => {
     const gameStore = useGameStore()
-    gameStore.handleState(baseState({ phase: PhasePlaying, hand: { 201: { id: 201, suit: Hearts, rank: Eight } } }))
+    gameStore.handleState(
+      baseState({ phase: PhasePlaying, hand: { 201: { id: 201, suit: Hearts, rank: Eight } } }),
+    )
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([201]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([201]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
     expect(canastasRow.props('clickableGroupIds')).toEqual(new Set())
   })
 
-  it('hides canasta clickability when it is not this seat\'s turn to play', () => {
+  it("hides canasta clickability when it is not this seat's turn to play", () => {
     const gameStore = useGameStore()
     gameStore.handleState(baseState({ phase: PhaseDrawing }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
@@ -480,7 +658,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhasePlaying }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set([101]) },
+      props: {
+        gameStore,
+        selectedCardIds: new Set([101]),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      },
     })
     wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('select-group', 2)
 
@@ -493,7 +676,12 @@ describe('TeamMelds', () => {
     gameStore.handleState(baseState({ phase: PhasePlaying }))
 
     const wrapper = mount(TeamMelds, {
-      props: { gameStore, selectedCardIds: new Set<number>() }, // nothing selected, so canasta 2 isn't clickable
+      props: {
+        gameStore,
+        selectedCardIds: new Set<number>(),
+        displayMelds: gameStore.myTeamMelds,
+        displayCanastas: gameStore.myTeamCanastas,
+      }, // nothing selected, so canasta 2 isn't clickable
     })
     wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('select-group', 2)
 
@@ -511,7 +699,12 @@ describe('TeamMelds', () => {
       gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: false }))
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([101, 102, 103]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
 
       expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(false)
@@ -522,7 +715,12 @@ describe('TeamMelds', () => {
       gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([101, 102, 103]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([101, 102, 103]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
 
       expect(wrapper.findComponent(MeldRow).props('showCreateAffordance')).toBe(true)
@@ -533,7 +731,12 @@ describe('TeamMelds', () => {
       gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: false }))
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([101, 102]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -545,7 +748,12 @@ describe('TeamMelds', () => {
       gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([101, 102]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -557,7 +765,12 @@ describe('TeamMelds', () => {
       gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: false }))
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([101, 102]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
@@ -569,7 +782,12 @@ describe('TeamMelds', () => {
       gameStore.handleState(baseState({ phase: PhasePlaying, canGoOut: true }))
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([101, 102]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([101, 102]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
@@ -594,7 +812,11 @@ describe('TeamMelds', () => {
       count: 7,
       natural,
     })
-    const missingOnlyUnnatural = [canasta(10, Four, true), canasta(11, Seven, true), canasta(12, Wild, false)]
+    const missingOnlyUnnatural = [
+      canasta(10, Four, true),
+      canasta(11, Seven, true),
+      canasta(12, Wild, false),
+    ]
     const twoCardHand = {
       500: { id: 500, suit: Clubs, rank: King },
       501: { id: 501, suit: Wild, rank: Two },
@@ -614,7 +836,12 @@ describe('TeamMelds', () => {
       )
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([501]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([501]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -628,16 +855,28 @@ describe('TeamMelds', () => {
           phase: PhasePlaying,
           goneDown: true,
           canGoOut: false,
-          hand: { 500: { id: 500, suit: Clubs, rank: King }, 501: { id: 501, suit: Diamonds, rank: Queen } },
+          hand: {
+            500: { id: 500, suit: Clubs, rank: King },
+            501: { id: 501, suit: Diamonds, rank: Queen },
+          },
           ourMelds: [queensMeld],
           // Missing sevens instead — completing a (still-natural) Queens
           // canasta doesn't help.
-          ourCanastas: [canasta(10, Four, true), canasta(11, Five, false), canasta(12, Wild, false)],
+          ourCanastas: [
+            canasta(10, Four, true),
+            canasta(11, Five, false),
+            canasta(12, Wild, false),
+          ],
         }),
       )
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([501]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([501]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -658,7 +897,12 @@ describe('TeamMelds', () => {
       )
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([501]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([501]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const meldsRow = wrapper.findAllComponents(MeldRow)[0]!
 
@@ -671,7 +915,14 @@ describe('TeamMelds', () => {
       const gameStore = useGameStore()
       gameStore.handleState(baseState({ ourRedThrees: [{ id: 500, suit: Hearts, rank: Three }] }))
 
-      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      const wrapper = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set<number>(),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
       expect(canastasRow.props('groups')).toEqual([
@@ -684,7 +935,14 @@ describe('TeamMelds', () => {
       const gameStore = useGameStore()
       gameStore.handleState(baseState({ ourRedThrees: [] }))
 
-      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      const wrapper = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set<number>(),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
       expect(canastasRow.props('groups')).toEqual(gameStore.myTeamCanastas)
@@ -700,7 +958,12 @@ describe('TeamMelds', () => {
       )
 
       const wrapper = mount(TeamMelds, {
-        props: { gameStore, selectedCardIds: new Set([201]) },
+        props: {
+          gameStore,
+          selectedCardIds: new Set([201]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
       })
       const canastasRow = wrapper.findAllComponents(MeldRow)[1]!
 
@@ -719,13 +982,34 @@ describe('TeamMelds', () => {
         }),
       )
 
-      const none = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      const none = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set<number>(),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       expect(none.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
 
-      const wrongCard = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([202]) } })
+      const wrongCard = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set([202]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       expect(wrongCard.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
 
-      const mixed = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201, 202]) } })
+      const mixed = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set([201, 202]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       expect(mixed.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
     })
 
@@ -738,7 +1022,14 @@ describe('TeamMelds', () => {
         }),
       )
 
-      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201]) } })
+      const wrapper = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set([201]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
 
       expect(wrapper.findAllComponents(MeldRow)[1]!.props('showCreateAffordance')).toBe(false)
     })
@@ -752,7 +1043,14 @@ describe('TeamMelds', () => {
         }),
       )
 
-      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201]) } })
+      const wrapper = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set([201]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('create')
 
       expect(send).toHaveBeenCalledWith('play_red_three', { cardIds: [201], fromFoot: false })
@@ -768,7 +1066,14 @@ describe('TeamMelds', () => {
         }),
       )
 
-      const wrapper = mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set([201]) } })
+      const wrapper = mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set([201]),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
       wrapper.findAllComponents(MeldRow)[1]!.vm.$emit('create')
       expect(send).toHaveBeenCalledWith('play_red_three', { cardIds: [201], fromFoot: false })
 
@@ -789,7 +1094,14 @@ describe('TeamMelds', () => {
       const gameStore = useGameStore()
       gameStore.handleState(baseState({ phase: PhaseDrawing, hand: {} }))
 
-      mount(TeamMelds, { props: { gameStore, selectedCardIds: new Set<number>() } })
+      mount(TeamMelds, {
+        props: {
+          gameStore,
+          selectedCardIds: new Set<number>(),
+          displayMelds: gameStore.myTeamMelds,
+          displayCanastas: gameStore.myTeamCanastas,
+        },
+      })
 
       expect(send).not.toHaveBeenCalled()
     })

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import { useSortableHand } from '@/composables/useSortableHand'
+import { useMeldFlightWatcher } from '@/composables/useMeldFlightWatcher'
 import { handHalfWidthExpr } from '@/utils/handLayout'
 import CenterPile from '@/components/board/CenterPile.vue'
 import PlayerHand from '@/components/board/PlayerHand.vue'
@@ -26,6 +27,12 @@ const props = defineProps<{ instanceId?: string; allowSeatSwitch?: boolean }>()
 const emit = defineEmits<{ 'select-seat': [seatIndex: number] }>()
 const gameStore = useGameStore(props.instanceId)
 const settings = useSettingsStore()
+
+// Shared by TeamMelds (my team's melds/canastas) and OpponentMelds (the
+// other team's) — owned here, one watcher per GameView instance, same
+// reasoning as selectedCardIds below.
+const { displayMyTeamMelds, displayMyTeamCanastas, displayOpponentMelds, displayOpponentCanastas } =
+  useMeldFlightWatcher(gameStore)
 
 // Hand order is local UI state, not derived fresh from gameStore.myHand
 // every render — see useSortableHand for why (keeps the arrangement
@@ -85,10 +92,16 @@ function clearSelection(): void {
     :clickable-names="allowSeatSwitch"
     @select-seat="emit('select-seat', $event)"
   />
-  <OpponentMelds :game-store="gameStore" />
+  <OpponentMelds
+    :game-store="gameStore"
+    :display-melds="displayOpponentMelds"
+    :display-canastas="displayOpponentCanastas"
+  />
   <TeamMelds
     :game-store="gameStore"
     :selected-card-ids="selectedCardIds"
+    :display-melds="displayMyTeamMelds"
+    :display-canastas="displayMyTeamCanastas"
     @melded="clearSelection"
   />
   <PlayerHand

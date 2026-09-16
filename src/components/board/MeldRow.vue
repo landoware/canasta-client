@@ -149,6 +149,7 @@ onBeforeUnmount(() => document.removeEventListener("click", handleDocumentClick)
 <template>
   <div class="flex flex-wrap items-start justify-center gap-4">
     <button v-for="group in groups" :key="group.id" type="button" class="relative pointer-events-auto cursor-pointer"
+      :data-group-id="group.id"
       :class="[
         TILE_SIZE_CLASS,
         isClickable(group.id)
