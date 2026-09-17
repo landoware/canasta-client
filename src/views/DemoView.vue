@@ -5,11 +5,57 @@
 // itself so the demo renders identically to the real game. Clicking
 // another player's name (GameView's allowSeatSwitch) switches which seat's
 // store GameView is mounted against.
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useGameStore } from '@/stores/game'
+import type { GameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
 import GameView from '@/views/GameView.vue'
 import Button from '@/components/Button.vue'
+
+// welcome (which joinRoom resolves on) arrives the instant each seat
+// connects — well before the `state` broadcast that actually starts the
+// game once all 4 seats are filled (see internal/room.Room.startGame).
+// Waiting only on joinRoom would let GameView mount against a store whose
+// gameState is still null; this mirrors the same isPlaying gate LobbyView
+// uses before it ever navigates to GameView.
+function waitUntilPlaying(store: GameStore): Promise<void> {
+  if (store.isPlaying) return Promise.resolve()
+  return new Promise((resolve) => {
+    const stop = watch(
+      () => store.isPlaying,
+      (playing) => {
+        if (playing) {
+          stop()
+          resolve()
+        }
+      },
+    )
+  })
+}
+
+// The room no longer auto-starts once all 4 seats are named — each seat
+// must set_ready and only the host may start_game (see
+// internal/room/lobby.go's applySetReady/applyStartGame). Host is
+// whichever seat was claimed first, which races the same way seat
+// assignment does, so it's discovered reactively via canStartGame
+// (mirrors LobbyView's own gate on that computed) rather than assumed.
+function waitForHost(stores: GameStore[]): Promise<GameStore> {
+  const alreadyHost = stores.find((store) => store.canStartGame)
+  if (alreadyHost) return Promise.resolve(alreadyHost)
+  return new Promise((resolve) => {
+    const stops = stores.map((store) =>
+      watch(
+        () => store.canStartGame,
+        (canStart) => {
+          if (canStart) {
+            stops.forEach((stop) => stop())
+            resolve(store)
+          }
+        },
+      ),
+    )
+  })
+}
 
 const SEAT_IDS = ['demo-0', 'demo-1', 'demo-2', 'demo-3']
 const SEAT_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4']
@@ -45,6 +91,10 @@ const initDemo = async (): Promise<void> => {
     await Promise.all(
       SEAT_IDS.map((_, i) => gameStores[i]!.joinRoom(roomCode, SEAT_NAMES[i]!)),
     )
+    gameStores.forEach((store) => store.setReady(true))
+    const host = await waitForHost(gameStores)
+    host.startGame()
+    await Promise.all(gameStores.map((store) => waitUntilPlaying(store)))
   } catch (err) {
     initError.value = err instanceof Error ? err.message : 'Failed to start demo game'
   } finally {
