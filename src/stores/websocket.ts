@@ -10,6 +10,7 @@ import {
   TypePlayerReconnected,
   TypePlayerStatus,
   TypeGoOutRequested,
+  TypeChatMessage,
   TypeError,
 } from '@/types/protocol'
 import type {
@@ -18,11 +19,13 @@ import type {
   PlayersLobbyPayload,
   PlayerStatusPayload,
   GoOutRequestedPayload,
+  ChatBroadcastPayload,
   ErrorPayload,
   CreateRoomResponse,
 } from '@/types/protocol'
 import type { MessageType } from '@/types/protocol'
 import { useGameStore } from './game'
+import { useChatStore } from './chat'
 import { useRateLimiter } from '@/composables/useRateLimiter'
 import { MAIN_INSTANCE_ID } from './instanceId'
 
@@ -197,6 +200,9 @@ function defineWebSocketStore(instanceId: string) {
         break
       case TypeGoOutRequested:
         gameStore.handleGoOutRequested(message.data as GoOutRequestedPayload)
+        break
+      case TypeChatMessage:
+        useChatStore(instanceId).handleChatMessage(message.data as ChatBroadcastPayload)
         break
       case TypeError:
         gameStore.handleServerError(message.data as ErrorPayload)

@@ -3,6 +3,7 @@ import { useRoute } from 'vue-router'
 import { useGameStore } from '@/stores/game'
 import { useSettingsStore } from '@/stores/settings'
 import SettingsMenu from '@/components/SettingsMenu.vue'
+import TableTalk from '@/components/TableTalk.vue'
 import CardFlightLayer from '@/components/board/CardFlightLayer.vue'
 
 const route = useRoute()
@@ -27,6 +28,7 @@ const settings = useSettingsStore()
   >
     <RouterView />
     <SettingsMenu v-if="route.path !== '/'" />
+    <TableTalk v-if="route.path !== '/'" />
     <CardFlightLayer />
 
     <!-- Global error/notification toasts -->

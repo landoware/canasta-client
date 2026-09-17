@@ -10,6 +10,7 @@ import {
 } from "@/stores/settings";
 import { useGameStore } from "@/stores/game";
 import { useWebSocketStore } from "@/stores/websocket";
+import { useChatStore } from "@/stores/chat";
 import { SORT_METHOD_OPTIONS } from "@/utils/handSort";
 import Button from "@/components/Button.vue";
 
@@ -20,6 +21,7 @@ const route = useRoute();
 const router = useRouter();
 const gameStore = useGameStore();
 const wsStore = useWebSocketStore();
+const chatStore = useChatStore();
 
 // Shown on the real game board (/game/:roomCode) and the demo (/demo,
 // which reuses GameView itself) — /join/:roomCode (LobbyView) already has
@@ -35,6 +37,7 @@ function leaveGame(): void {
   // the same room code + name later.
   wsStore.disconnect();
   gameStore.clearGameState();
+  chatStore.reset();
   isOpen.value = false;
   void router.push("/");
 }

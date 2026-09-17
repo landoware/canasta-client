@@ -4,6 +4,7 @@ import type { Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/game'
 import { useWebSocketStore } from '@/stores/websocket'
+import { useChatStore } from '@/stores/chat'
 import LobbySeatGrid from '@/components/LobbySeatGrid.vue'
 import Button from '@/components/Button.vue'
 import FormCard from '@/components/FormCard.vue'
@@ -12,6 +13,7 @@ const route = useRoute()
 const router = useRouter()
 const gameStore = useGameStore()
 const wsStore = useWebSocketStore()
+const chatStore = useChatStore()
 
 const roomCode = computed(() => String(route.params.roomCode).toUpperCase())
 
@@ -70,6 +72,7 @@ function leave(): void {
   // the room. See internal/room.Room's disconnect handling.
   wsStore.disconnect()
   gameStore.clearGameState()
+  chatStore.reset()
   void router.push('/')
 }
 </script>

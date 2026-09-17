@@ -3,7 +3,8 @@ import { createPinia, setActivePinia } from "pinia";
 import { Server } from "mock-socket";
 import { useWebSocketStore } from "@/stores/websocket";
 import { useGameStore } from "@/stores/game";
-import { TypeWelcome, TypeDrawFromDeck } from "@/types/protocol";
+import { useChatStore } from "@/stores/chat";
+import { TypeWelcome, TypeDrawFromDeck, TypeChatMessage } from "@/types/protocol";
 
 const SERVER_URL = "http://localhost:8080";
 const WS_URL_PREFIX = "ws://localhost:8080";
@@ -70,6 +71,31 @@ describe("websocket store", () => {
 
     await vi.waitFor(() => expect(gameStore.mySeatIndex).toBe(3));
     expect(gameStore.roomCode).toBe("ABC123");
+  });
+
+  it("dispatches an incoming chat_message broadcast to the chat store", async () => {
+    mockServer = new Server(`${WS_URL_PREFIX}/rooms/ABC123/ws?name=Alice`);
+    mockServer.on("connection", (socket) => {
+      socket.send(
+        JSON.stringify({
+          type: TypeChatMessage,
+          data: { seatIndex: 2, name: "Bob", text: "nice hand" },
+        }),
+      );
+    });
+
+    const store = useWebSocketStore();
+    const chatStore = useChatStore();
+    store.connect("ABC123", "Alice");
+
+    await vi.waitFor(() => expect(chatStore.messages).toHaveLength(1));
+    expect(chatStore.messages[0]).toMatchObject({
+      seatIndex: 2,
+      name: "Bob",
+      text: "nice hand",
+      self: false,
+    });
+    expect(chatStore.unreadCount).toBe(1);
   });
 
   it("createRoom posts to /rooms and returns the room code", async () => {

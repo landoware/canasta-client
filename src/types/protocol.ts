@@ -189,6 +189,15 @@ export const TypeGoOutRequested: MessageType = "go_out_requested";
  */
 export const TypeError: MessageType = "error";
 /**
+ * Chat. A chat message is relayed verbatim — the client's outbound
+ * {text} and the server's broadcast {seatIndex, name, text} share this
+ * one MessageType since it's a single relayed event, not a
+ * request/response pair. Chat skips turn/phase gating entirely and
+ * works in both Lobby and Playing states — see Room.handleCommand's
+ * special case in internal/room/room.go.
+ */
+export const TypeChatMessage: MessageType = "chat_message";
+/**
  * CreateRoomResponse is the body of a successful POST /rooms. It's the
  * only HTTP (non-websocket) wire type, but lives here rather than in
  * internal/server so all wire types stay in one place for tygo.
@@ -298,6 +307,23 @@ export interface PlayerStatusPayload {
 export interface ErrorPayload {
   code: string;
   message: string;
+}
+/**
+ * ChatMessagePayload is sent by a client to broadcast a chat message to
+ * the room. Not persisted: the server only relays to currently
+ * connected seats, with no history/replay on reconnect.
+ */
+export interface ChatMessagePayload {
+  text: string;
+}
+/**
+ * ChatBroadcastPayload is sent to every other connected seat when a
+ * client sends a chat message.
+ */
+export interface ChatBroadcastPayload {
+  seatIndex: number /* int */;
+  name: string;
+  text: string;
 }
 
 //////////
